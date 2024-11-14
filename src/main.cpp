@@ -14,20 +14,23 @@ GM6020 GM6020_1(6);
 M2006_P36 M2006_1(1);
 
 
+//达妙电机MIT控制类
 class DM_MIT_MOTOR{
   public:
+    
     DM_MIT_MOTOR(int _MST_ID,int _CAN_ID):MST_ID(_MST_ID),CAN_ID(_CAN_ID){
       motor_map[_MST_ID]=this;
       //添加回调函数,当收到对应地址CAN数据时，调用callback
       add_user_can_func(_MST_ID,callback);
     }
-
+  
+  
   //protected:
-  //地址到电机的映射
-  static std::map<int,DM_MIT_MOTOR*> motor_map;
+  //can总线ID到电机的映射
+  static std::map<int, DM_MIT_MOTOR*> motor_map;
   //回调函数,更新电机数据
   static void callback(twai_message_t* can_message){
-    if(motor_map.find(can_message->identifier)==motor_map.end()){
+    if(DM_MIT_MOTOR::motor_map.find(can_message->identifier)==DM_MIT_MOTOR::motor_map.end()){
       return;
     }
     motor_map[can_message->identifier]->update_date_callback(can_message->data);
@@ -69,6 +72,7 @@ class DM_MIT_MOTOR{
     }
     can_message.data[7]=0xfc;
     
+
     twai_transmit(&can_message,portMAX_DELAY);
   }
   //更新数据的回调
@@ -98,6 +102,10 @@ class DM_MIT_MOTOR{
   uint8_t ERR;//错误信息
 
 };
+//类静态成员要在类外定义
+std::map<int, DM_MIT_MOTOR*> DM_MIT_MOTOR::motor_map;
+
+//测试用对象
 DM_MIT_MOTOR gm6220(0,1);
 
 void setup() {
