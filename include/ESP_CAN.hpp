@@ -2,7 +2,7 @@
  * @Description: 对twai库的二次封装,实现CAN回调函数,默认1Mbps波特率
  * @Author: qingmeijiupiao
  * @Date: 2024-04-13 21:00:21
- * @LastEditTime: 2024-11-11 21:20:31
+ * @LastEditTime: 2024-11-15 10:14:27
  * @LastEditors: qingmeijiupiao
  * @rely:PID_CONTROL.hpp
 */
@@ -102,9 +102,9 @@ void  can_setup(uint8_t TX_PIN, uint8_t RX_PIN){
     //检测TWAI驱动是否已经安装
     twai_status_info_t now_twai_status;
     auto status = twai_get_status_info(&now_twai_status);
-    // if(status != ESP_ERR_INVALID_STATE){//如果驱动重复安装
-    //     return;
-    // }
+    if(status != ESP_ERR_INVALID_STATE){//如果驱动重复安装
+        return;
+    }
 
 
     //总线速率,1Mbps
@@ -143,7 +143,7 @@ void feedback_update_task(void* n){
         if(func_map.find(rx_message.identifier)!=func_map.end()){
             func_map[rx_message.identifier](&rx_message);
         }
-        Serial.println(rx_message.identifier);
+        // Serial.println(rx_message.identifier);
     }
 }
 #endif

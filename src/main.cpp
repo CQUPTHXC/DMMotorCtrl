@@ -54,6 +54,7 @@ class DM_MIT_MOTOR{
     twai_message_t can_message;//定义CAN数据对象
     can_message.identifier=CAN_ID;//电机ID就是CAN地址
     can_message.data_length_code=8;//数据长度为8字节
+    can_message.self=false;
     //打包
     get_MIT_pakage(can_message.data,_p_des*(1<<16),_v_des*(1<<12),_Kp*(1<<8),_Kd*(1<<8),_t_ff*(1<<12));
     
@@ -85,6 +86,20 @@ class DM_MIT_MOTOR{
     MOS_temp=arr[6];
     T_Rotor=arr[7];
   }
+  void print_data(){
+    Serial.print("POS_raw:");
+    Serial.print(POS_raw);
+    Serial.print(",VEL_raw:");
+    Serial.print(VEL_raw);
+    Serial.print(",TORQUE_raw:");
+    Serial.print(TORQUE_raw);
+    Serial.print(",MOS_temp:");
+    Serial.print(MOS_temp);
+    Serial.print(",T_Rotor:");
+    Serial.print(T_Rotor);
+    Serial.print(",ERR:");
+    Serial.println(ERR);
+  }
   //控制任务,没写完
   static void control_task(void *p){
     DM_MIT_MOTOR* motor=(DM_MIT_MOTOR*)p;
@@ -108,6 +123,42 @@ std::map<int, DM_MIT_MOTOR*> DM_MIT_MOTOR::motor_map;
 //测试用对象
 DM_MIT_MOTOR gm6220(0,1);
 
+float p_des=0.5,v_des=0.5,Kp=0.6,Kd=0.2,t_ff=0.5;
+
+
+void test_task(void* p){
+  while(1){
+    gm6220.send_MIT_pakage(p_des,v_des,Kp,Kd,t_ff);
+    delay(1);
+  }
+}
+
+void read_param(void *p){
+  while (1){
+    if(Serial.available()){
+      String str=Serial.readStringUntil('\n');
+      String name=str.substring(0,2);
+
+      float value=str.substring(4).toFloat();
+      if(name=="pd"){
+        p_des=value;
+      }else if(name=="vd"){
+        v_des=value;
+      }else if(name=="KP"){
+        Kp=value;
+      }else if(name=="Kd"){
+        Kd=value;
+      }else if(name=="tf"){
+        t_ff=value;
+      }else{
+        Serial.println("error");
+      }
+    }
+    delay(1);
+  }
+  
+}
+
 void setup() {
   Serial.begin(115200);
   ESPNOW::esp_now_setup();
@@ -117,14 +168,17 @@ void setup() {
   digitalWrite(4,HIGH);
   digitalWrite(5,HIGH);
   can_setup();
+  xTaskCreate(read_param,"read_param",4096,nullptr,5,nullptr);
   delay(2000);//等待CAN初始化和电机启动
+
   //使能
   gm6220.enable();
+  xTaskCreate(test_task,"test_task",4096,nullptr,5,nullptr);
 
 }
 
 void loop() {
-  gm6220.send_MIT_pakage(0,0.2,0,0.5,0);
+  //gm6220.print_data();
   delay(1);
 }
 
