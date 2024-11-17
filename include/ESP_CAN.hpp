@@ -2,7 +2,7 @@
  * @Description: 对twai库的二次封装,实现CAN回调函数,默认1Mbps波特率
  * @Author: qingmeijiupiao
  * @Date: 2024-04-13 21:00:21
- * @LastEditTime: 2024-11-15 10:14:27
+ * @LastEditTime: 2024-11-18 01:01:32
  * @LastEditors: qingmeijiupiao
  * @rely:PID_CONTROL.hpp
 */
@@ -79,8 +79,9 @@
 */
 #ifndef ESP_CAN_HPP
 #define ESP_CAN_HPP
+#include <Arduino.h>
 #include "driver/twai.h" //can驱动,esp32sdk自带
-
+#include <mutex>
 /*↓↓↓本文件的类和函数↓↓↓*/
 
 //初始化CAN
@@ -143,7 +144,6 @@ void feedback_update_task(void* n){
         if(func_map.find(rx_message.identifier)!=func_map.end()){
             func_map[rx_message.identifier](&rx_message);
         }
-        // Serial.println(rx_message.identifier);
     }
 }
 #endif

@@ -39,6 +39,17 @@ class DM_MIT_MOTOR{
 
   void send_MIT_pakage(float _p_des,float _v_des,float _Kp,float _Kd,float _t_ff){
 
+    auto limit=[](float& x,float min,float max){
+      if(x<min)x=min;
+      if(x>max)x=max;
+    };
+
+    limit(_p_des,0,1);
+    limit(_v_des,0,1);
+    limit(_Kp,0,1);
+    limit(_Kd,0,1);
+    limit(_t_ff,0,1);
+    
     //定义打包函数
     auto get_MIT_pakage=[&](uint8_t* arr,uint16_t p_des,uint16_t v_des,uint16_t Kp,uint16_t Kd,uint16_t t_ff){
       arr[0]=p_des>>8;
@@ -56,7 +67,7 @@ class DM_MIT_MOTOR{
     can_message.data_length_code=8;//数据长度为8字节
     can_message.self=false;
     //打包
-    get_MIT_pakage(can_message.data,_p_des*(1<<16),_v_des*(1<<12),_Kp*(1<<8),_Kd*(1<<8),_t_ff*(1<<12));
+    get_MIT_pakage(can_message.data,_p_des*((1<<16)-1),_v_des*((1<<12)-1),_Kp*((1<<8)-1),_Kd*((1<<8)-1),_t_ff*((1<<12)-1));
     
     //发送CAN数据包
     twai_transmit(&can_message,portMAX_DELAY);
@@ -86,20 +97,20 @@ class DM_MIT_MOTOR{
     MOS_temp=arr[6];
     T_Rotor=arr[7];
   }
-  void print_data(){
-    Serial.print("POS_raw:");
-    Serial.print(POS_raw);
-    Serial.print(",VEL_raw:");
-    Serial.print(VEL_raw);
-    Serial.print(",TORQUE_raw:");
-    Serial.print(TORQUE_raw);
-    Serial.print(",MOS_temp:");
-    Serial.print(MOS_temp);
-    Serial.print(",T_Rotor:");
-    Serial.print(T_Rotor);
-    Serial.print(",ERR:");
-    Serial.println(ERR);
-  }
+  // void print_data(){
+  //   Serial.print("P and  V:");
+  //   Serial.print(POS_raw);
+  //   Serial.print(",");
+  //   Serial.print(VEL_raw);
+  //   Serial.print(",");
+  //   Serial.print(TORQUE_raw);
+  //   Serial.print(",");
+  //   Serial.print(MOS_temp);
+  //   Serial.print(",");
+  //   Serial.print(T_Rotor);
+  //   Serial.print(",");
+  //   Serial.println(ERR);
+  // }
   //控制任务,没写完
   static void control_task(void *p){
     DM_MIT_MOTOR* motor=(DM_MIT_MOTOR*)p;
@@ -122,13 +133,13 @@ std::map<int, DM_MIT_MOTOR*> DM_MIT_MOTOR::motor_map;
 
 //测试用对象
 DM_MIT_MOTOR gm6220(0,1);
-
-float p_des=0.5,v_des=0.5,Kp=0.6,Kd=0.2,t_ff=0.5;
+DM_MIT_MOTOR DM3519(0x10,2);
+float p_des=0,v_des=0.5,Kp=0,Kd=0.2,t_ff=0.5;
 
 
 void test_task(void* p){
   while(1){
-    gm6220.send_MIT_pakage(p_des,v_des,Kp,Kd,t_ff);
+    DM3519.send_MIT_pakage(p_des,v_des,Kp,Kd,t_ff);
     delay(1);
   }
 }
@@ -173,12 +184,13 @@ void setup() {
 
   //使能
   gm6220.enable();
+  DM3519.enable();
   xTaskCreate(test_task,"test_task",4096,nullptr,5,nullptr);
 
 }
 
 void loop() {
-  //gm6220.print_data();
-  delay(1);
+  DM3519.print_data();
+  delay(10);
 }
 
