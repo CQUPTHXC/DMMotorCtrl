@@ -12,12 +12,120 @@
 #include <map>
 enum DMRegisterAddress;
 struct DMRegisterData_t;
+
+class DMMotorMIT : public DMMotor{
+public:
+
+DMMotorMIT(int MST_ID,int CAN_ID):DMMotor(MST_ID,CAN_ID){};
+
+DMMotorMIT(int MST_ID,int CAN_ID,float _kd):DMMotor(MST_ID,CAN_ID){
+
+    _kd=_kd>1?1:_kd;
+    _kd=_kd<0?0:_kd;
+    Kd=_kd*255;
+};
+
+DMMotorMIT(int MST_ID,int CAN_ID,float _kd,float _kp):DMMotor(MST_ID,CAN_ID){
+    _kd=_kd>1?1:_kd;
+    _kd=_kd<0?0:_kd;
+    _kp=_kp>1?1:_kp;
+    _kp=_kp<0?0:_kp;
+    Kd=_kd*255;
+    Kp=_kp*255;
+};
+//设置数据交互频率参数
+void setDataRate(uint16_t value){
+    value=value>1000?1000:value;
+    value=value<1?1:value;
+    DataRateHz=value;
+}
+
+//力矩赋值
+void set_tff(float __tff){  //力矩的参数值在[-1~1]
+    __tff=__tff>1?1:__tff;
+    __tff=__tff<-1?-1:__tff;
+    Kp=0;
+    Kd=0;
+    t_ff=__tff*(1<<12);
+}
+
+//位置模式控制，Kd，Kp都不能为零
+void set_pdes(float _p_des){
+    _p_des= _p_des>1?1: _p_des;
+    _p_des= _p_des<0?0: _p_des;
+    Kp=0.1;
+    Kd=0.1;
+    p_des= _p_des;
+}
+
+//速度模式控制，Kd可以为零
+void set_vdes(float _v_des){
+    _v_des= _v_des>1?1: _v_des;
+    _v_des= _v_des<-1?-1: _v_des;
+    Kp=0.1;
+    Kd=0;
+    v_des= _v_des=0.5*(1<<12);
+}
+
+void setup(bool isEnable){
+
+    if(isEnable)
+    {
+        enable();
+    }
+    if(ctrl_handle==nullptr){
+        xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_handle);
+    }
+}
+
+private:
+
+    void sendMITpakage(){
+        uint8_t arr[8];
+        arr[0]=p_des>>8;
+        arr[1]=p_des&0xFF;
+        arr[2]=v_des>>4;
+        arr[3]=((v_des&0x0F)<<4)|((Kp>>8)&0x0F);
+        arr[4]=Kp&0xFF;
+        arr[5]=Kd>>4;
+        arr[6]=((Kd&0x0F)<<4)|((t_ff>>8)&0x0F);
+        arr[7]=t_ff&0xFF;
+        twai_message_t can_message;//定义CAN数据对象
+        can_message.identifier=CAN_ID;//电机ID就是CAN地址
+        can_message.data_length_code=8;//数据长度为8字节
+        can_message.self=false;
+        memcpy(can_message.data,arr,8);
+        //发送CAN数据包
+        twai_transmit(&can_message,portMAX_DELAY);
+    }
+
+    static void DMmotortask(void* _motor){
+        DMMotorMIT* motor=(DMMotorMIT*)_motor;
+        while(1){
+            motor->sendMITpakage();
+            delay(1000/motor->DataRateHz);
+        }
+    };
+
+    uint8_t Kp=0;//位置控制系数，使用速度控制时置为零
+    uint8_t Kd=0;//速度控制系数,当使用位置控制时，此参数！不！能！为！零！
+    uint16_t DataRateHz=1000;//数据交互频率
+    uint16_t p_des=0; //位置串级控制参数
+    uint16_t v_des=0.5*(1<<12);//速度串级控制参数
+    uint16_t t_ff=0.5*(1<<12);//力矩串级控制参数
+
+    TaskHandle_t ctrl_handle=nullptr;
+};
+
+
+
+// 达妙电机基类
 class DMMotor{
 public:
-    DMMotor(int _MST_ID,int _CAN_ID):MST_ID(_MST_ID),CAN_ID(_CAN_ID){
-        motor_map[_MST_ID]=this;
+    DMMotor(int MST_ID,int CAN_ID):MST_ID(MST_ID),CAN_ID(CAN_ID){
+        motor_map[MST_ID]=this;
         //添加回调函数,当收到对应地址CAN数据时，调用callback
-        add_user_can_func(_MST_ID,callback);
+        add_user_can_func(MST_ID,callback);
     }
     //使能
     esp_err_t enable(){
@@ -74,6 +182,8 @@ public:
         can_message.data[7]=0xfb;
         return twai_transmit(&can_message,portMAX_DELAY);
     }
+
+
 protected:
     //can总线ID到电机的映射
     static std::map<int, DMMotor*> motor_map;
@@ -141,6 +251,7 @@ protected:
         memcpy(can_message.data+4,&value,4);
         return twai_transmit(&can_message,portMAX_DELAY);  
     }
+
     
     int MST_ID;//电机反馈数据ID
     int CAN_ID;//电机控制数据ID
@@ -152,7 +263,8 @@ protected:
     uint8_t T_Rotor;//电机温度
     uint8_t ERR;//错误信息
     DMRegisterData_t register_data;//寄存器数据
-};
+
+};         
 //类静态成员要在类外定义
 std::map<int, DMMotor*> DMMotor::motor_map;
 
