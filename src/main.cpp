@@ -34,6 +34,16 @@ class DM_MIT_MOTOR{
   }
 
 
+/*
+ * @Description: MIT数据传输
+ * @Author: qingmeijiupiao
+ * @param:{float} _p_des:取值范围为[0,1]
+ *        {float} _v_des:取值范围为[0,1],0-0.5为反转，0.5-1为正转
+ *        {float} _Kp,:取值范围为[0,1];
+ *        {float} _Kd:取值范围为[0,1]
+ *        {float} _t_ff:取值范围为[0,1],0-0.5为反转，0.5-1为正转
+ * @return:{*}
+ */
   void send_MIT_pakage(float _p_des,float _v_des,float _Kp,float _Kd,float _t_ff){
 
     auto limit=[](float& x,float min,float max){
@@ -47,7 +57,18 @@ class DM_MIT_MOTOR{
     limit(_Kd,0,1);
     limit(_t_ff,0,1);
     
-    //定义打包函数
+
+
+/*
+ * @Description: 定义打包函数
+ * @Author: qingmeijiupiao
+ * @param:{uint8_t*} p_des:取值范围为[0,1]
+ *        {uint8_t*} v_des:取值范围为[0,1],0-0.5为反转，0.5-1为正转
+ *        {uint8_t*} Kp,:取值范围为[0,1];
+ *        {uint8_t*} Kd:取值范围为[0,1]
+ *        {uint8_t*} t_ff:取值范围为[0,1],0-0.5为反转，0.5-1为正转
+ * @return:{*}
+ */
     auto get_MIT_pakage=[&](uint8_t* arr,uint16_t p_des,uint16_t v_des,uint16_t Kp,uint16_t Kd,uint16_t t_ff){
       arr[0]=p_des>>8;
       arr[1]=p_des&0xFF;
@@ -63,14 +84,20 @@ class DM_MIT_MOTOR{
     can_message.identifier=CAN_ID;//电机ID就是CAN地址
     can_message.data_length_code=8;//数据长度为8字节
     can_message.self=false;
-    //打包
+
+    //打包用户自定义数据
     get_MIT_pakage(can_message.data,_p_des*((1<<16)-1),_v_des*((1<<12)-1),_Kp*((1<<8)-1),_Kd*((1<<8)-1),_t_ff*((1<<12)-1));
     
     //发送CAN数据包
     twai_transmit(&can_message,portMAX_DELAY);
   }
 
-  //使能，达妙MIT模式必须先使能才能控制
+/*
+ * @Description:使能，达妙MIT模式必须先使能才能控制
+ * @Author: qingmeijiupiao
+ * @param: {*}
+ * @return:{*}
+ */
   void enable(){
     twai_message_t can_message;
     can_message.identifier=CAN_ID;
@@ -84,8 +111,13 @@ class DM_MIT_MOTOR{
 
     twai_transmit(&can_message,portMAX_DELAY);
   }
-  //更新数据的回调
-  //uint8_t* arr :CAN数据包
+  
+/*
+ * @Description:更新数据的回调
+ * @Author: qingmeijiupiao
+ * @param: {uint8_t*}arr :CAN数据包
+ * @return:{*}
+ */
   void update_date_callback(uint8_t* arr){
     ERR=arr[0]>>4;
     POS_raw=(arr[1]<<8)|arr[2];
@@ -165,7 +197,12 @@ void test_task(void* p){
 //     delay(1);
 //   }
   
-// }
+}
+
+void DJimotorsetup(){
+
+  
+}
 
 void setup() {
   Serial.begin(115200);
