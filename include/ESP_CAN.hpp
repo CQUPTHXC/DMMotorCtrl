@@ -2,9 +2,9 @@
  * @Description: 对twai库的二次封装,实现CAN回调函数,默认1Mbps波特率
  * @Author: qingmeijiupiao
  * @Date: 2024-04-13 21:00:21
- * @LastEditTime: 2024-11-18 01:01:32
+ * @LastEditTime: 2024-11-21 20:09:34
  * @LastEditors: qingmeijiupiao
- * @rely:PID_CONTROL.hpp
+ * @rely:
 */
 /*
                                               .=%@#=.                                               
@@ -81,17 +81,17 @@
 #define ESP_CAN_HPP
 #include <Arduino.h>
 #include "driver/twai.h" //can驱动,esp32sdk自带
-#include <mutex>
+
 /*↓↓↓本文件的类和函数↓↓↓*/
 
 //初始化CAN
-void  can_setup(uint8_t TX_PIN=8, uint8_t RX_PIN=18);
+void  can_setup(uint8_t TX_PIN=8, uint8_t RX_PIN=18);//这里默认是HXC开发板A的CAN芯片引脚
 
 //添加用户自定义的can消息接收函数，用于处理非电机的数据,addr：要处理的消息的地址，func：回调函数
 void  add_user_can_func(int addr,std::function<void(twai_message_t* can_message)> func);
 
-//电机反馈任务,无需手动创建
-void  feedback_update_task(void* n);
+//全局CAN反馈任务,无需手动创建
+void  can_feedback_update_task(void* n);
 
 /*↑↑↑本文件的类和函数↑↑↑*/
 
@@ -120,14 +120,14 @@ void  can_setup(uint8_t TX_PIN, uint8_t RX_PIN){
     //CAN驱动启动
     twai_start();
     //创建任务
-    xTaskCreate(feedback_update_task,"can_fb",4096,nullptr,5,nullptr);//can反馈任务
+    xTaskCreate(can_feedback_update_task,"can_fb",4096,nullptr,5,nullptr);//can反馈任务
 
 };
 
 //CAN反馈函数
-using CAN_FEEDBACK_FUNC = std::function<void(twai_message_t* can_message)>;
+using can_feedback_func= std::function<void(twai_message_t* can_message)>;
 
-std::map<int,CAN_FEEDBACK_FUNC> func_map;//can回调map
+std::map<int,can_feedback_func> func_map;//can回调map
 
 //添加用户自定义的can消息接收函数，用于处理非电机的数据,addr：要处理的消息的地址
 void add_user_can_func(int addr,std::function<void(twai_message_t* can_message)> func){
@@ -135,7 +135,7 @@ void add_user_can_func(int addr,std::function<void(twai_message_t* can_message)>
 };
 
 //接收CAN总线上的数据的任务函数
-void feedback_update_task(void* n){
+void can_feedback_update_task(void* n){
     twai_message_t rx_message;
     while (1){
         //接收CAN上数据

@@ -9,12 +9,9 @@
 #include "CONTROLLER.hpp"
 #include "DJIMotorCtrlESP.hpp"
 #include <map>
-M3508_P19 M3508(2);
-GM6020 GM6020_1(6);
-M2006_P36 M2006_1(1);
+M3508_P19 M3508(1);
 
-
-//达妙电机MIT控制类
+// //达妙电机MIT控制类
 class DM_MIT_MOTOR{
   public:
     
@@ -133,42 +130,42 @@ std::map<int, DM_MIT_MOTOR*> DM_MIT_MOTOR::motor_map;
 
 //测试用对象
 DM_MIT_MOTOR gm6220(0,1);
-DM_MIT_MOTOR DM3519(0x10,2);
-float p_des=0,v_des=0.5,Kp=0,Kd=0.2,t_ff=0.5;
+// DM_MIT_MOTOR DM3519(0x10,2);
+float p_des=0,v_des=0.5,Kp=0.5,Kd=0.2,t_ff=0.5;
 
 
 void test_task(void* p){
   while(1){
-    DM3519.send_MIT_pakage(p_des,v_des,Kp,Kd,t_ff);
+    gm6220.send_MIT_pakage(p_des,v_des,Kp,Kd,t_ff);
     delay(1);
   }
 }
 
-void read_param(void *p){
-  while (1){
-    if(Serial.available()){
-      String str=Serial.readStringUntil('\n');
-      String name=str.substring(0,2);
+// void read_param(void *p){
+//   while (1){
+//     if(Serial.available()){
+//       String str=Serial.readStringUntil('\n');
+//       String name=str.substring(0,2);
 
-      float value=str.substring(4).toFloat();
-      if(name=="pd"){
-        p_des=value;
-      }else if(name=="vd"){
-        v_des=value;
-      }else if(name=="KP"){
-        Kp=value;
-      }else if(name=="Kd"){
-        Kd=value;
-      }else if(name=="tf"){
-        t_ff=value;
-      }else{
-        Serial.println("error");
-      }
-    }
-    delay(1);
-  }
+//       float value=str.substring(4).toFloat();
+//       if(name=="pd"){
+//         p_des=value;
+//       }else if(name=="vd"){
+//         v_des=value;
+//       }else if(name=="KP"){
+//         Kp=value;
+//       }else if(name=="Kd"){
+//         Kd=value;
+//       }else if(name=="tf"){
+//         t_ff=value;
+//       }else{
+//         Serial.println("error");
+//       }
+//     }
+//     delay(1);
+//   }
   
-}
+// }
 
 void setup() {
   Serial.begin(115200);
@@ -178,19 +175,23 @@ void setup() {
   pinMode(5,OUTPUT);
   digitalWrite(4,HIGH);
   digitalWrite(5,HIGH);
-  can_setup();
-  xTaskCreate(read_param,"read_param",4096,nullptr,5,nullptr);
-  delay(2000);//等待CAN初始化和电机启动
-
-  //使能
+  can_init();
   gm6220.enable();
-  DM3519.enable();
+  delay(2000);
   xTaskCreate(test_task,"test_task",4096,nullptr,5,nullptr);
+  M3508.setup();
+  // //使能
+  
+  // DM3519.enable();
+  
 
 }
 
 void loop() {
-  DM3519.print_data();
-  delay(10);
+  //DM3519.print_data();
+  M3508.set_speed(800*remote_data.ly);
+  p_des=remote_data.ry+0.5;
+  // Serial.println(M3508.is_online());
+  delay(20);
 }
 
