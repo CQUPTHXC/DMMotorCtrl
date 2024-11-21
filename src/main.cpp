@@ -162,7 +162,6 @@ std::map<int, DM_MIT_MOTOR*> DM_MIT_MOTOR::motor_map;
 
 //测试用对象
 DM_MIT_MOTOR gm6220(0,1);
-// DM_MIT_MOTOR DM3519(0x10,2);
 float p_des=0,v_des=0.5,Kp=0.5,Kd=0.2,t_ff=0.5;
 
 
@@ -173,41 +172,15 @@ void test_task(void* p){
   }
 }
 
-// void read_param(void *p){
-//   while (1){
-//     if(Serial.available()){
-//       String str=Serial.readStringUntil('\n');
-//       String name=str.substring(0,2);
-
-//       float value=str.substring(4).toFloat();
-//       if(name=="pd"){
-//         p_des=value;
-//       }else if(name=="vd"){
-//         v_des=value;
-//       }else if(name=="KP"){
-//         Kp=value;
-//       }else if(name=="Kd"){
-//         Kd=value;
-//       }else if(name=="tf"){
-//         t_ff=value;
-//       }else{
-//         Serial.println("error");
-//       }
-//     }
-//     delay(1);
-//   }
-  
-}
-
-void DJimotorsetup(){
-
-  
-}
 
 void setup() {
   Serial.begin(115200);
+
+  //遥控器
   ESPNOW::esp_now_setup();
   ESPNOW::add_callback_func("controller_data",test_callback);
+  //遥控器
+  
   pinMode(4,OUTPUT);
   pinMode(5,OUTPUT);
   digitalWrite(4,HIGH);
@@ -217,18 +190,13 @@ void setup() {
   delay(2000);
   xTaskCreate(test_task,"test_task",4096,nullptr,5,nullptr);
   M3508.setup();
-  // //使能
-  
-  // DM3519.enable();
-  
+
 
 }
 
 void loop() {
-  //DM3519.print_data();
   M3508.set_speed(800*remote_data.ly);
   p_des=remote_data.ry+0.5;
-  // Serial.println(M3508.is_online());
   delay(20);
 }
 

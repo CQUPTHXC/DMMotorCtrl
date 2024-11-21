@@ -9,7 +9,8 @@
 #include "ESPNOW.hpp"
 struct CONTROLLER_DATA_t {
 public:
-    float lx,ly,rx,ry,lknob,rknob;
+    float lx,ly,rx,ry,/*-0.5-0.5*/
+    lknob,rknob;/*0-1*/
     
     bool LUshouder,LDshouder,RUshouder,RDshouder;
 
