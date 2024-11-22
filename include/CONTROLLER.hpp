@@ -1,6 +1,6 @@
 /*
  * @LastEditors: qingmeijiupiao
- * @Description: 
+ * @Description: 遥控器相关
  * @Author: qingmeijiupiao
  * @Date: 2024-11-14 21:40:14
  */
@@ -64,7 +64,10 @@ public:
         rdown=(DButtonbit&0x80)>>7;
     }
 };
+//遥控器数据结构体对象
 CONTROLLER_DATA_t remote_data;
+
+
 void test_callback(ESPNOW::data_package ESPNOW_DATA){
   remote_data.array_to_data(ESPNOW_DATA.data);
 }

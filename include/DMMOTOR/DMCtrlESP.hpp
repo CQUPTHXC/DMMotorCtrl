@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-22 11:32:55
+ * @LastEditTime: 2024-11-22 11:34:37
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -270,8 +270,5 @@ private:
 
     TaskHandle_t ctrl_task_handle=nullptr;
 };
-
-
-
 
 #endif
