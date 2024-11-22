@@ -10,6 +10,7 @@
 #include "../ESP_CAN.hpp"
 #include <map>
 #include "DMRegister.hpp"
+#include <math.h>
 
 
 
@@ -186,12 +187,10 @@ void setDataRate(uint16_t value){
  * @Author: qingmeijiupiao
  * @param {float} __tff 取值范围为[-1,1]
  */
-void set_tff(float __tff){  
-    __tff=__tff>1?1:__tff;
-    __tff=__tff<-1?-1:__tff;
+void set_tff(uint16_t __tff){  
     Kp=0;
     Kd=0;
-    t_ff=__tff*(1<<12);
+    t_ff= __tff>((1<<12)-1)?((1<<12)-1): __tff;
 }
 
 /**
@@ -267,6 +266,7 @@ private:
     uint16_t p_des=0; //位置串级控制参数
     uint16_t v_des=0.5*(1<<12);//速度串级控制参数
     uint16_t t_ff=0.5*(1<<12);//力矩串级控制参数
+    
 
     TaskHandle_t ctrl_task_handle=nullptr;
 };

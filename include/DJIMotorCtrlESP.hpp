@@ -429,6 +429,7 @@ class MOTOR{
         void add_location_to_current_func(int (*func_ptr)(int64_t location)){// 传入函数指针的重载
             location_to_current_func=func_ptr;
         }
+
     protected:
         MOTOR(){};
         //位置到电流的映射函数，默认返回0,当电流非线性时需要重写
@@ -452,6 +453,9 @@ class MOTOR{
         float acceleration=0;//电机加速度,0为不启用加速度控制
         int speed_location_K=1000;//速度环位置误差系数,这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿
         int control_frequency=200;//速度闭环以及位置闭环控制频率，单位Hz
+
+
+
 };
 
 
@@ -492,6 +496,8 @@ class M3508_P19:public MOTOR{
         float get_now_speed() override{
             return data->speed/19.0;
         }
+
+
 };
 
 
