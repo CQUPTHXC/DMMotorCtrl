@@ -2,107 +2,14 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-18 01:03:22
+ * @LastEditTime: 2024-11-22 11:34:37
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
 #include <Arduino.h>
-#include "ESP_CAN.hpp"
-#include "PID_CONTROL.hpp"
+#include "../ESP_CAN.hpp"
 #include <map>
-
-//DM寄存器
-enum DMRegisterAddress {
-    UV_Value = 0x00,  // 低压保护值
-    KT_Value = 0x01,  // 扭矩系数
-    OT_Value = 0x02,  // 过温保护值
-    OC_Value = 0x03,  // 过流保护值
-    ACCE = 0x04,       // 加速度
-    DECE = 0x05,       // 减速度
-    MAX_SPD = 0x06,   // 最大速度
-    MST_ID = 0x07,    // 反馈 ID
-    ESC_ID = 0x08,    // 接收 ID
-    TIMEOUT = 0x09,   // 超时警报时间
-    CTRL_MODE = 0x0A, // 控制模式
-    Damp = 0x0B,      // 电机粘滞系数
-    Inertia = 0x0C,   // 电机转动惯量
-    hw_ver = 0x0D,    // 硬件版本号
-    sw_ver = 0x0E,    // 软件版本号
-    SN = 0x0F,        // 序列号
-    NPP = 0x10,       // 电机极对数
-    Rs = 0x11,        // 电机相电阻
-    Ls = 0x12,        // 电机相电感
-    Flux = 0x13,      // 电机磁链值
-    Gr = 0x14,        // 齿轮减速比
-    PMAX = 0x15,      // 位置映射范围
-    VMAX = 0x16,      // 速度映射范围
-    TMAX = 0x17,      // 扭矩映射范围
-    I_BW = 0x18,      // 电流环控制带宽
-    KP_ASR = 0x19,    // 速度环 Kp
-    KI_ASR = 0x1A,    // 速度环 Ki
-    OV_Value = 0x1D,  // 过压保护值
-    GREF = 0x1E,      // 齿轮力矩效率
-    Deta = 0x1F,      // 速度环阻尼系数
-    V_BW = 0x20,      // 速度环滤波带宽
-    IQ_c1 = 0x21,     // 电流环增强系数
-    VL_c1 = 0x22,     // 速度环增强系数
-    can_br = 0x23,    // CAN 波特率代码
-    sub_ver = 0x24,   // 子版本号
-    u_off = 0x32,     // u 相偏置
-    v_off = 0x33,     // v 相偏置
-    k1 = 0x34,        // 补偿因子 1
-    k2 = 0x35,        // 补偿因子 2
-    m_off = 0x36,     // 角度偏移
-    dir = 0x37,       // 方向
-    p_m = 0x50,       // 电机当前位置
-    xout = 0x51,      // 输出轴位置
-};
-struct DMRegisterData_t {
-    float UV_Value;      // 低压保护值
-    float KT_Value;      // 扭矩系数
-    float OT_Value;      // 过温保护值
-    float OC_Value;      // 过流保护值
-    float Acceleration;  // 加速度
-    float Deceleration;  // 减速度
-    float MaxSpeed;      // 最大速度
-    uint32_t MST_ID;     // 反馈 ID
-    uint32_t ESC_ID;     // 接收 ID
-    uint32_t Timeout;    // 超时警报时间
-    uint32_t ControlMode; // 控制模式
-    float DampingCoefficient; // 电机粘滞系数
-    float MomentOfInertia;   // 电机转动惯量
-    uint32_t HardwareVersion; // 硬件版本号
-    uint32_t SoftwareVersion; // 软件版本号
-    uint32_t SerialNumber;     // 序列号
-    uint32_t NumberPolePairs; // 电机极对数
-    float PhaseResistance;    // 电机相电阻
-    float PhaseInductance;    // 电机相电感
-    float FluxLinkage;        // 电机磁链值
-    float GearReduction;      // 齿轮减速比
-    float PositionMapRange;   // 位置映射范围
-    float SpeedMapRange;      // 速度映射范围
-    float TorqueMapRange;     // 扭矩映射范围
-    float CurrentLoopBandwidth;// 电流环控制带宽
-    float SpeedLoopProportionalGain; // 速度环 Kp
-    float SpeedLoopIntegralGain;    // 速度环 Ki
-    float OV_Value;            // 过压保护值
-    float GearTorqueEfficiency;    // 齿轮力矩效率
-    float SpeedLoopDampingCoefficient; // 速度环阻尼系数
-    float SpeedLoopFilterBandwidth; // 速度环滤波带宽
-    float CurrentLoopCompensationFactor; // 电流环增强系数
-    float SpeedLoopCompensationFactor;  // 速度环增强系数
-    uint32_t CAN_BaudrateCode; // CAN 波特率代码
-    uint32_t SubVersion;       // 子版本号
-    float UPhaseOffset;        // U 相偏置
-    float VPhaseOffset;        // V 相偏置
-    float CompensationFactor1; // 补偿因子 1
-    float CompensationFactor2; // 补偿因子 2
-    float AngleOffset;         // 角度偏移
-    float Direction;           // 方向
-    float MotorCurrentPosition; // 电机当前位置
-    float OutputShaftPosition;  // 输出轴位置
-};
-
+#include "DMRegister.hpp"
 
 
 
@@ -172,7 +79,7 @@ public:
     }
 
 
-//protected:
+protected:
     //can总线ID到电机的映射
     static std::map<int, DMMotor*> motor_map;
     //回调函数,更新电机数据
@@ -256,30 +163,14 @@ public:
 //类静态成员要在类外定义
 std::map<int, DMMotor*> DMMotor::motor_map;
 
-
-
 class DMMotorMIT : public DMMotor{
 public:
 
 DMMotorMIT(int MST_ID,int CAN_ID):DMMotor(MST_ID,CAN_ID){};
 
-DMMotorMIT(int MST_ID,int CAN_ID,float _kd):DMMotor(MST_ID,CAN_ID){
-
-    _kd=_kd>1?1:_kd;
-    _kd=_kd<0?0:_kd;
-    Kd=_kd*255;
-};
-
-DMMotorMIT(int MST_ID,int CAN_ID,float _kp,float _kd):DMMotor(MST_ID,CAN_ID){
-    _kp=_kp>1?1:_kp;
-    _kp=_kp<0?0:_kp;
-    Kp=_kp*255;
-
-    _kd=_kd>1?1:_kd;
-    _kd=_kd<0?0:_kd;
-    Kd=_kd*255;
-
-
+DMMotorMIT(int MST_ID,int CAN_ID,uint8_t _kd,uint8_t _kp):DMMotor(MST_ID,CAN_ID){
+    Kd=_kd;
+    Kp=_kp;
 };
 //设置数据交互频率参数
 void setDataRate(uint16_t value){
@@ -288,8 +179,14 @@ void setDataRate(uint16_t value){
     DataRateHz=value;
 }
 
-//力矩赋值
-void set_tff(float __tff){  //力矩的参数值在[-1~1]
+
+/**
+ * @description: 力矩控制
+ * @return {*}
+ * @Author: qingmeijiupiao
+ * @param {float} __tff 取值范围为[-1,1]
+ */
+void set_tff(float __tff){  
     __tff=__tff>1?1:__tff;
     __tff=__tff<-1?-1:__tff;
     Kp=0;
@@ -297,29 +194,41 @@ void set_tff(float __tff){  //力矩的参数值在[-1~1]
     t_ff=__tff*(1<<12);
 }
 
-//位置模式控制，Kd，Kp都不能为零
-void set_pdes(float _p_des){
-    _p_des= _p_des>1?1: _p_des;
-    _p_des= _p_des<0?0: _p_des;
-    p_des= _p_des*(1<<16);
+/**
+ * @description: 位置模式控制
+ * @return {*}
+ * @Author: qingmeijiupiao
+ * @param {uint16_t} _p_des 16位整数 0-65535 映射到[-P_max,P_max]
+ */
+void set_pdes(uint16_t _p_des){
+    p_des= _p_des>((1<<16)-1)?((1<<16)-1): _p_des;
 }
 
-//速度模式控制，Kd可以为零
-void set_vdes(float _v_des){
-    _v_des= _v_des>1?1: _v_des;
-    _v_des= _v_des<-1?-1: _v_des;
-    Kp=0;
-    v_des= _v_des=0.5*(1<<12);
+
+/**
+ * @description: 速度模式控制
+ * @return {*}
+ * @Author: qingmeijiupiao
+ * @param {uint16_t} _v_des 12位整数 -4096-4095 映射到[-V_max,V_max]
+ */
+void set_vdes(uint16_t _v_des){
+    v_des= _v_des>((1<<12)-1)?((1<<12)-1): _v_des;
 }
 
-void setup(bool isEnable){
-
+/**
+ * @description: 初始化MIT电机控制
+ * @param {bool} isEnable 是否使能
+ * @return {*}
+ * @Author: qingmeijiupiao
+ */
+void setup(bool isEnable=true){
     if(isEnable)
     {
         enable();
     }
-    if(ctrl_handle==nullptr){
-        xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_handle);
+    if(ctrl_task_handle==nullptr){
+        xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_task_handle
+);
     }
 }
 
@@ -336,7 +245,7 @@ private:
         arr[6]=((Kd&0x0F)<<4)|((t_ff>>8)&0x0F);
         arr[7]=t_ff&0xFF;
         twai_message_t can_message;//定义CAN数据对象
-        can_message.identifier=this->CAN_ID;//电机ID就是CAN地址
+        can_message.identifier=CAN_ID;//电机ID就是CAN地址
         can_message.data_length_code=8;//数据长度为8字节
         can_message.self=false;
         memcpy(can_message.data,arr,8);
@@ -359,6 +268,7 @@ private:
     uint16_t v_des=0.5*(1<<12);//速度串级控制参数
     uint16_t t_ff=0.5*(1<<12);//力矩串级控制参数
 
-    TaskHandle_t ctrl_handle=nullptr;
+    TaskHandle_t ctrl_task_handle=nullptr;
 };
+
 #endif

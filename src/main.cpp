@@ -5,16 +5,15 @@
  * @Date: 2024-10-17 22:00:39
  */
 #include <Arduino.h>
-//#include "ESP_CAN.hpp"
+
 #include "CONTROLLER.hpp"
 #include "DJIMotorCtrlESP.hpp"
-#include "DMCtrlESP.hpp"
-
+#include "./DMMOTOR/DMCtrlESP.hpp"
 #include <map>
 M3508_P19 M3508(1);
-// float p_des=0,v_des=0.1,Kp=0.1,Kd=0.4,t_ff=0.7;
 
-DMMotorMIT gm6220(0,1,0.1,0.4);
+// //达妙电机MIT控制类
+DMMotorMIT gm6220(0,1);
 
 void setup() {
   Serial.begin(115200);
@@ -30,7 +29,7 @@ void setup() {
   digitalWrite(5,HIGH);
   can_init();
   delay(2000);
-  gm6220.setup(1);
+  gm6220.setup();
   M3508.setup();
 
 
@@ -38,8 +37,6 @@ void setup() {
 
 void loop() {
   M3508.set_speed(800*remote_data.ly);
-  gm6220.set_pdes(remote_data.ry+0.5);
-  Serial.println(gm6220.POS_raw);
   delay(20);
 }
 
