@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-22 11:34:37
+ * @LastEditTime: 2024-11-22 22:35:20
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -79,6 +79,26 @@ public:
         return twai_transmit(&can_message,portMAX_DELAY);
     }
 
+    bool is_online(){
+        if(millis()-last_update_time>20 && last_update_time!=0){//20ms没收到数据就认为掉线 
+            return false;
+        }
+
+        return true;
+    };
+    //获取位置数据,0-65535 映射到 -Pmax~Pmax
+    uint16_t get_pos(){return POS_raw;}
+    //获取速度数据,0-4095 映射到 -Vmax~Vmax
+    uint16_t get_vel(){return VEL_raw;}
+    //获取扭矩 0-4095 映射到 -Tmax~Tmax
+    uint16_t get_torque(){return TORQUE_raw;}
+    //获取错误代码
+    uint8_t get_error(){return ERR;}
+    //获取控制器温度，单位摄氏度
+    uint8_t get_temp(){return MOS_temp;}
+    //获取电机温度，单位摄氏度
+    uint8_t get_T_Rotor(){return T_Rotor;}
+
 
 protected:
     //can总线ID到电机的映射
@@ -89,6 +109,7 @@ protected:
             return;
         }
         motor_map[can_message->identifier]->update_date_callback(can_message->data);
+
     }
     void update_date_callback(uint8_t* arr){
         ERR=arr[0]>>4;
@@ -97,6 +118,7 @@ protected:
         TORQUE_raw=((arr[4]&0x0F)<<8)|arr[5];
         MOS_temp=arr[6];
         T_Rotor=arr[7];
+        last_update_time=millis();
     }
     //读取寄存器,寄存器表：https://gitee.com/kit-miao/damiao/raw/master/DM%20%E5%88%86%E7%AB%8B%E7%B3%BB%E5%88%97/DM-S3519-1EC/DM-S3519-1EC%E5%87%8F%E9%80%9F%E7%94%B5%E6%9C%BA%EF%BC%88%E5%90%ABDM3520-1EC%E9%A9%B1%E5%8A%A8%E5%99%A8%EF%BC%89%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6V1.0.pdf
     esp_err_t read_register(DMRegisterAddress addr){
@@ -159,7 +181,7 @@ protected:
     uint8_t T_Rotor;//电机温度
     uint8_t ERR;//错误信息
     DMRegisterData_t register_data;//寄存器数据
-
+    uint32_t last_update_time=0;//上次更新时间
 };         
 //类静态成员要在类外定义
 std::map<int, DMMotor*> DMMotor::motor_map;
@@ -221,13 +243,13 @@ void set_vdes(uint16_t _v_des){
  * @Author: qingmeijiupiao
  */
 void setup(bool isEnable=true){
-    if(isEnable)
-    {
-        enable();
+    if(isEnable){
+        while(!is_online()){//等待电机上线
+            enable();//使能
+        }
     }
     if(ctrl_task_handle==nullptr){
-        xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_task_handle
-);
+        xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_task_handle);
     }
 }
 

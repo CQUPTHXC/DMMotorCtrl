@@ -17,64 +17,25 @@ M3508_P19 M3508(1);
 
 DMMotorMIT gm6220(0,1,0.1*255,0.4*255);
 
-/**
- * @description: 向量合成函数
- * @param {float}  VectorX  X方向向量
- *        {float}  VectorY  Y方向向量
- * @return {float} magnitude  X,Y向量合成后的最终标量
- * @Author: riley
- */
-float vectorSynthesis(float VectorX,float VectorY){
-    float magnitude =sqrt(VectorX*VectorX+VectorY*VectorY);
-    return magnitude;
-}
+//二维向量,极坐标表示
+struct dir_and_value
+{
+  float dir=0; //方向,单位弧度
+  float value=0;//值
 
-
-/**
- * @description: 浮点型映射函数，将浮点型变量映射为16位的原始数据
- * @param {float}  VectorX  X方向向量
- *        {float}  VectorY  Y方向向量
- * @return {float} magnitude  X,Y向量合成后的最终标量
- * @Author: riley
- */
-uint16_t map_float(float x, float in_min, float in_max, uint16_t out_min, uint16_t out_max) {
-    const float run = in_max - in_min;
-    if(run == 0){
-        log_e("map(): Invalid input range, min == max");
-        return -1; // AVR returns -1, SAM returns 0
+  void xy_to_polar(float x,float y){//xy转极坐标
+    if(x==0&&y==0){
+      dir=0;
+      value=0;
+      return;
     }
-    const uint16_t rise = out_max - out_min;
-    const float delta = x - in_min;
-    uint16_t up=(uint16_t)(delta * rise) / run + out_min;
-    return up;
-}
+    value=sqrt(x*x+y*y);//值
+    dir=atan2(y,x);//方向
+  }
 
-/**
- * @description: 角度计算传递函数
- * @param {float}  VectorX  X方向向量
- *        {float}  VectorY  Y方向向量
- * @return {float} magnitude  X,Y向量合成后的最终标量
- * @Author: riley
- */
-uint16_t anglecal(float VectorX,float VectorY){
-  float angle=0;
-//角度判别有问题，还得改
-  float __angle = atan2(VectorY, VectorX)+PI/2;
-    if (0 <= __angle && __angle <= PI / 2) 
-    {
-        angle = __angle;
-    } else if(PI / 2 < __angle && __angle <= PI) 
-    {
-        angle = -(PI - __angle);
-    } else if (PI < __angle && __angle <= 3 * PI / 2)
-    {
-        angle = __angle - PI;
-    } else if (3 * PI / 2 < __angle && __angle <= 2 * PI) 
-    {
-        angle = -(2 * PI - __angle);
-    }
-  return map_float(angle,0,2*PI,0,((1<<16)-1));
-}
+};
+
+
 
 
 void setup() {
@@ -89,17 +50,23 @@ void setup() {
   digitalWrite(4,HIGH);
   digitalWrite(5,HIGH);
   can_init();
-  delay(2000);
   gm6220.setup();
+  M3508.set_max_curunt(16384);
   M3508.setup();
 
 }
-
+dir_and_value temp;
 void loop() {
-  // vectorSynthesis(remote_data.lx,remote_data.ly);
-  M3508.set_speed(800*vectorSynthesis(remote_data.lx,remote_data.ly));
-  uint16_t temp=anglecal(remote_data.lx,remote_data.ly);
-  gm6220.set_pdes(temp);
+  temp.xy_to_polar(remote_data.ly,remote_data.lx);
+
+  M3508.set_speed(temp.value*600);
+
+  uint16_t DIR=65535/2;
+  DIR+=temp.dir*(65535/25);
+  Serial.print(temp.value);
+  Serial.print(",");
+  Serial.println(gm6220.get_pos());
+  // gm6220.set_pdes(DIR);
   delay(20);
 }
 
