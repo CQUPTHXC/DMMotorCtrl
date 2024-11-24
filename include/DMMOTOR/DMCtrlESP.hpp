@@ -244,9 +244,9 @@ void set_vdes(uint16_t _v_des){
  */
 void setup(bool isEnable=true){
     if(isEnable){
-        while(!is_online()){//等待电机上线
+        // while(!is_online()){//等待电机上线
             enable();//使能
-        }
+        // }
     }
     if(ctrl_task_handle==nullptr){
         xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_task_handle);
