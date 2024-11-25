@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-25 22:01:32
+ * @LastEditTime: 2024-11-25 22:09:59
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -47,9 +47,7 @@ class HXC_DMCtrl : protected DMMotor{
     //位置到电流的映射函数，默认返回0,当电流非线性时需要重写
     std::function<uint16_t(int n)> location_to_current_func=[](int n){return 0;};
     //速度控制函数
-    static void speed_contral_task(HXC_DMCtrl* n){
-
-        HXC_DMCtrl* moto = (HXC_DMCtrl*) n;
+    static void speed_contral_task(HXC_DMCtrl* moto){
         //上次更新时间
         int last_update_speed_time=micros();
         moto->speed_pid_contraler.reset();
@@ -76,7 +74,7 @@ class HXC_DMCtrl : protected DMMotor{
             last_taget_control_speed = taget_control_speed;
 
             //由速度计算得到的目标位置
-            moto->speed_location_taget+=moto->is_online()*8192*taget_control_speed*delta_time/60;//位置误差,只有电机在线才计算累计位置
+            moto->speed_location_taget+=moto->is_online()*65535.f*taget_control_speed*delta_time/60.f;//位置误差,只有电机在线才计算累计位置
 
             //更新上次更新时间
             last_update_speed_time=micros();
@@ -88,7 +86,7 @@ class HXC_DMCtrl : protected DMMotor{
             +
             /*速度环位置误差比例系数=*/moto->speed_location_K/*这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿*/
             * 
-            /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->location)/8192;
+            /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->location)/65535.0;
 
 
             //计算控制电流
@@ -112,7 +110,16 @@ class HXC_DMCtrl : protected DMMotor{
         };
     };
     //位置控制函数
-    static void location_contral_task(HXC_DMCtrl* n){};
+    static void location_contral_task(HXC_DMCtrl* moto){
+        moto->location_pid_contraler.reset();//重置位置闭环控制器
+        float speed=0;
+        while (1){
+            //位置闭环控制,由位置误差决定速度,再由速度误差决定电流
+            speed = moto->location_pid_contraler.control(moto->location_taget - moto->location);
+            moto->taget_speed = speed;
+            delay(1000/moto->control_frequency);
+        }
+    };
     //速度控制线程
     HXC::thread<HXC_DMCtrl*> speed_contral_thread=HXC::thread<HXC_DMCtrl*>(speed_contral_task);
     //位置控制线程

@@ -10,7 +10,7 @@
 #include "DJIMotorCtrlESP.hpp"
 #include "./DMMOTOR/DMCtrlESP.hpp"
 #include <map>
-
+#include "./DMMOTOR/HXC_DMCtrl.hpp"
 M3508_P19 M3508(1);
 
 // //达妙电机MIT控制类
