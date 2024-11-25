@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-22 22:35:20
+ * @LastEditTime: 2024-11-25 16:01:25
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -244,9 +244,10 @@ void set_vdes(uint16_t _v_des){
  */
 void setup(bool isEnable=true){
     if(isEnable){
-        while(!is_online()){//等待电机上线
+        // while(!is_online()){//等待电机上线
             enable();//使能
-        }
+            delay(10);
+       //}
     }
     if(ctrl_task_handle==nullptr){
         xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_task_handle);

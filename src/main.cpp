@@ -15,7 +15,7 @@ M3508_P19 M3508(1);
 
 // //达妙电机MIT控制类
 
-DMMotorMIT gm6220(0,1,0.1*255,0.4*255);
+DMMotorMIT gm6220(0,1,0.047*255,0.75*255);
 
 //二维向量,极坐标表示
 struct dir_and_value
@@ -30,12 +30,46 @@ struct dir_and_value
       return;
     }
     value=sqrt(x*x+y*y);//值
+    if ((remote_data.lx<0&&remote_data.ly<0)||(remote_data.lx>0&&remote_data.ly<0)||remote_data.lx<0||remote_data.ly<0)
+    {
+      value=-value;
+    }
+    
     dir=atan2(y,x);//方向
   }
 
 };
+dir_and_value temp;
 
 
+
+/**
+ * @description: 航向电机劣弧转换函数
+ * @return {float} taget_angle
+ * @Author: qingmeijiupiao
+ * @param {*}
+ */
+float AngleConversion(){
+    //航向电机的实际角度
+  float DMangle=((gm6220.get_pos()-32768)/65535.f)*25;
+  //取到-PI到PI
+  float DMangle_pi=fmod(DMangle,PI);
+  //角度差值
+  float delta_angle=temp.dir-DMangle_pi;
+  //是否需要旋转PI
+  bool need_rotate=abs(delta_angle)>PI/2;
+  float taget_angle=0;
+  float motor_speed=0;
+  if(need_rotate){
+    motor_speed=-1*temp.value;
+    delta_angle=delta_angle>0?delta_angle-PI:delta_angle+PI;
+  }else{
+    motor_speed=temp.value;
+  }
+  taget_angle=DMangle+delta_angle;
+  Serial.println(taget_angle);
+  return taget_angle;
+}
 
 
 void setup() {
@@ -55,18 +89,11 @@ void setup() {
   M3508.setup();
 
 }
-dir_and_value temp;
 void loop() {
   temp.xy_to_polar(remote_data.ly,remote_data.lx);
 
-  M3508.set_speed(temp.value*600);
-
-  uint16_t DIR=65535/2;
-  DIR+=temp.dir*(65535/25);
-  Serial.print(temp.value);
-  Serial.print(",");
-  Serial.println(gm6220.get_pos());
-  // gm6220.set_pdes(DIR);
+  M3508.set_speed(temp.value*800);
+  gm6220.set_pdes(32768+AngleConversion()*65535/25);
   delay(20);
 }
 
