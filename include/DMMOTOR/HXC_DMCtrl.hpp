@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-25 22:09:59
+ * @LastEditTime: 2024-11-25 22:14:11
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -12,13 +12,16 @@
 class HXC_DMCtrl : protected DMMotor{
     HXC_DMCtrl(int MST_ID,int CAN_ID,float PMAX,float VMAX):DMMotor(MST_ID,CAN_ID),P_MAX(PMAX),V_MAX(VMAX){};
 
+    //获取当前速度，单位RPM
     float get_speed(){
         return (VEL_raw-2048)/4096*V_MAX;
     };
+    //获取当前位置，单位rad
     float get_pos(){
         return (POS_raw-32768)/65535*P_MAX;
     }
 
+    int64_t get_location(){return location;}
     private:
     float P_MAX=0;
     float V_MAX=0;
@@ -31,9 +34,9 @@ class HXC_DMCtrl : protected DMMotor{
     //位置闭环默认控制参数
     pid_param default_location_pid_parmater={0.1,0.1,0,2000,3000}; 
     //位置环多圈目标位置
-    int location_taget=0;
+    int64_t location_taget=0;
     //速度环多圈目标位置
-    int speed_location_taget=0;
+    int64_t speed_location_taget=0;
     //单位RPM
     float taget_speed = 0;
     //电机加速度,0为不启用加速度控制

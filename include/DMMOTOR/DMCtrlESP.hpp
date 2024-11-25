@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-25 20:45:15
+ * @LastEditTime: 2024-11-25 22:13:46
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -87,7 +87,7 @@ public:
         return true;
     };
     //获取多圈位置
-    int get_location(){return location;}
+    int64_t get_location(){return location;}
     //重置多圈位置
     void reset_location(int l=0){location=l;}
     //获取位置数据,0-65535 映射到 -Pmax~Pmax
@@ -204,7 +204,7 @@ protected:
     DMRegisterData_t register_data;//寄存器数据
     uint32_t last_update_time=0;//上次更新时间
 
-    int location = 0;//多圈位置
+    int64_t location = 0;//多圈位置
 };         
 //类静态成员要在类外定义
 std::map<int, DMMotor*> DMMotor::motor_map;
