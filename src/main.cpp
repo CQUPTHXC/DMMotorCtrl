@@ -88,7 +88,7 @@ void setup() {
   gm6220.setup();
   M3508.set_max_curunt(16384);
   M3508.setup();
-
+  
 }
 void loop() {
   temp.xy_to_polar(remote_data.ly,remote_data.lx);
