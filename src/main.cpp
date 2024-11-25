@@ -15,7 +15,7 @@ M3508_P19 M3508(1);
 
 // //达妙电机MIT控制类
 
-DMMotorMIT gm6220(0,1,0.047*255,0.75*255);
+DMMotorMIT gm6220(0,1,0.0928*255,0.748*255);
 
 //二维向量,极坐标表示
 struct dir_and_value
@@ -84,6 +84,7 @@ void setup() {
   digitalWrite(4,HIGH);
   digitalWrite(5,HIGH);
   can_init();
+  delay(3000);
   gm6220.setup();
   M3508.set_max_curunt(16384);
   M3508.setup();
