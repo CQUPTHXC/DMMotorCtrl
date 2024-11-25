@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-25 16:01:25
+ * @LastEditTime: 2024-11-25 20:45:15
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -86,6 +86,10 @@ public:
 
         return true;
     };
+    //获取多圈位置
+    int get_location(){return location;}
+    //重置多圈位置
+    void reset_location(int l=0){location=l;}
     //获取位置数据,0-65535 映射到 -Pmax~Pmax
     uint16_t get_pos(){return POS_raw;}
     //获取速度数据,0-4095 映射到 -Vmax~Vmax
@@ -113,11 +117,28 @@ protected:
     }
     void update_date_callback(uint8_t* arr){
         ERR=arr[0]>>4;
-        POS_raw=(arr[1]<<8)|arr[2];
+        uint16_t POS=(arr[1]<<8)|arr[2];
         VEL_raw=(arr[3]<<4)|(arr[4]>>4);
         TORQUE_raw=((arr[4]&0x0F)<<8)|arr[5];
         MOS_temp=arr[6];
         T_Rotor=arr[7];
+
+        //多圈位置更新
+        int delta=0;
+        if((POS+8192-POS_raw)%8192<4096){//正转
+            delta=POS-POS_raw;
+            if (delta<0){
+                delta+=8192;
+            }
+        }else{
+            delta=POS-POS_raw;
+            if (delta>0){
+                delta-=8192;
+            }
+        }
+        //更新位置
+        location += delta;
+        POS_raw=POS;
         last_update_time=millis();
     }
     //读取寄存器,寄存器表：https://gitee.com/kit-miao/damiao/raw/master/DM%20%E5%88%86%E7%AB%8B%E7%B3%BB%E5%88%97/DM-S3519-1EC/DM-S3519-1EC%E5%87%8F%E9%80%9F%E7%94%B5%E6%9C%BA%EF%BC%88%E5%90%ABDM3520-1EC%E9%A9%B1%E5%8A%A8%E5%99%A8%EF%BC%89%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6V1.0.pdf
@@ -182,6 +203,8 @@ protected:
     uint8_t ERR;//错误信息
     DMRegisterData_t register_data;//寄存器数据
     uint32_t last_update_time=0;//上次更新时间
+
+    int location = 0;//多圈位置
 };         
 //类静态成员要在类外定义
 std::map<int, DMMotor*> DMMotor::motor_map;
