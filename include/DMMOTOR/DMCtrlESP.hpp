@@ -2,319 +2,271 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-11-25 22:13:46
+ * @LastEditTime: 2024-12-30 20:50:47
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
 #include <Arduino.h>
-#include "../ESP_CAN.hpp"
+#include "../HXC_CAN.hpp"
 #include <map>
 #include "DMRegister.hpp"
 #include <math.h>
 
-
-
-
 // 达妙电机基类
-class DMMotor{
+class DMMotor {
 public:
-    DMMotor(int MST_ID,int CAN_ID):MST_ID(MST_ID),CAN_ID(CAN_ID){
-        motor_map[MST_ID]=this;
-        //添加回调函数,当收到对应地址CAN数据时，调用callback
-        add_user_can_func(MST_ID,callback);
-    }
-    //使能
-    esp_err_t enable(){
-        twai_message_t can_message;
-        can_message.identifier=CAN_ID;
-        can_message.data_length_code=8;
-        can_message.extd=0;
-        can_message.self=0;
-        for (size_t i = 0; i < 7; i++)
-        {
-        can_message.data[i]=0xff;
-        }
-        can_message.data[7]=0xfc;
-        return twai_transmit(&can_message,portMAX_DELAY);
-    }
-    //失能
-    esp_err_t disable(){
-        twai_message_t can_message;
-        can_message.identifier=CAN_ID;
-        can_message.data_length_code=8;
-        can_message.extd=0;
-        can_message.self=0;
-        for (size_t i = 0; i < 7; i++)
-        {
-        can_message.data[i]=0xff;
-        }
-        can_message.data[7]=0xfd;
-        return twai_transmit(&can_message,portMAX_DELAY);
-    }
-    //保存位置零点
-    esp_err_t save_zero(){
-        twai_message_t can_message;
-        can_message.identifier=CAN_ID;
-        can_message.data_length_code=8;
-        can_message.extd=0;
-        can_message.self=0;
-        for (size_t i = 0; i < 7; i++)
-        {
-        can_message.data[i]=0xff;
-        }
-        can_message.data[7]=0xfe;
-        return twai_transmit(&can_message,portMAX_DELAY);
-    }
-    esp_err_t clear_error(){
-        twai_message_t can_message;
-        can_message.identifier=CAN_ID;
-        can_message.data_length_code=8;
-        can_message.extd=0;
-        can_message.self=0;
-        for (size_t i = 0; i < 7; i++)
-        {
-        can_message.data[i]=0xff;
-        }
-        can_message.data[7]=0xfb;
-        return twai_transmit(&can_message,portMAX_DELAY);
-    }
+    // 构造函数，初始化电机对象，注册CAN接收回调
+    DMMotor(HXC_CAN* can, int MST_ID, int CAN_ID);
 
-    bool is_online(){
-        if(millis()-last_update_time>20 && last_update_time!=0){//20ms没收到数据就认为掉线 
-            return false;
-        }
+    // 使能电机
+    esp_err_t enable();
 
-        return true;
-    };
-    //获取多圈位置
-    int64_t get_location(){return location;}
-    //重置多圈位置
-    void reset_location(int l=0){location=l;}
-    //获取位置数据,0-65535 映射到 -Pmax~Pmax
-    uint16_t get_pos(){return POS_raw;}
-    //获取速度数据,0-4095 映射到 -Vmax~Vmax
-    uint16_t get_vel(){return VEL_raw;}
-    //获取扭矩 0-4095 映射到 -Tmax~Tmax
-    uint16_t get_torque(){return TORQUE_raw;}
-    //获取错误代码
-    uint8_t get_error(){return ERR;}
-    //获取控制器温度，单位摄氏度
-    uint8_t get_temp(){return MOS_temp;}
-    //获取电机温度，单位摄氏度
-    uint8_t get_T_Rotor(){return T_Rotor;}
+    // 失能电机
+    esp_err_t disable();
 
+    // 保存电机位置零点
+    esp_err_t save_zero();
+
+    // 清除电机错误
+    esp_err_t clear_error();
+
+    // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
+    bool is_online();
+
+    // 获取电机的多圈位置
+    int64_t get_location();
+
+    // 重置电机的多圈位置（默认为0）
+    void reset_location(int l = 0);
+
+    // 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
+    uint16_t get_pos_raw();
+
+    // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
+    uint16_t get_vel_raw();
+
+    // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
+    uint16_t get_torque_raw();
+
+    // 获取电机的错误代码
+    uint8_t get_error();
+
+    // 获取电机的控制器温度（单位：摄氏度）
+    uint8_t get_controller_temperature();
+
+    // 获取电机的转子温度（单位：摄氏度）
+    uint8_t get_motor_temperature();
 
 protected:
-    //can总线ID到电机的映射
-    static std::map<int, DMMotor*> motor_map;
-    //回调函数,更新电机数据
-    static void callback(twai_message_t* can_message){
-        if(DMMotor::motor_map.find(can_message->identifier)==DMMotor::motor_map.end()){
-            return;
-        }
-        motor_map[can_message->identifier]->update_date_callback(can_message->data);
 
-    }
-    void update_date_callback(uint8_t* arr){
-        ERR=arr[0]>>4;
-        uint16_t POS=(arr[1]<<8)|arr[2];
-        VEL_raw=(arr[3]<<4)|(arr[4]>>4);
-        TORQUE_raw=((arr[4]&0x0F)<<8)|arr[5];
-        MOS_temp=arr[6];
-        T_Rotor=arr[7];
+    // 更新电机数据的回调函数
+    void update_date_callback(HXC_CAN_message_t* can_data);
 
-        //多圈位置更新
-        int delta=0;
-        if((POS+8192-POS_raw)%8192<4096){//正转
-            delta=POS-POS_raw;
-            if (delta<0){
-                delta+=8192;
-            }
-        }else{
-            delta=POS-POS_raw;
-            if (delta>0){
-                delta-=8192;
-            }
-        }
-        //更新位置
-        location += delta;
-        POS_raw=POS;
-        last_update_time=millis();
-    }
-    //读取寄存器,寄存器表：https://gitee.com/kit-miao/damiao/raw/master/DM%20%E5%88%86%E7%AB%8B%E7%B3%BB%E5%88%97/DM-S3519-1EC/DM-S3519-1EC%E5%87%8F%E9%80%9F%E7%94%B5%E6%9C%BA%EF%BC%88%E5%90%ABDM3520-1EC%E9%A9%B1%E5%8A%A8%E5%99%A8%EF%BC%89%E4%BD%BF%E7%94%A8%E8%AF%B4%E6%98%8E%E4%B9%A6V1.0.pdf
-    esp_err_t read_register(DMRegisterAddress addr){
-        twai_message_t can_message;
-        can_message.identifier=0x7FF;
-        can_message.data_length_code=8;
-        can_message.extd=0;
-        can_message.self=0;
-        can_message.data[0]=CAN_ID&0xFF;
-        can_message.data[1]=CAN_ID>>8;
-        can_message.data[2]=0x33;
-        can_message.data[3]=addr;
-        return twai_transmit(&can_message,portMAX_DELAY);   
-    }
+    // 读取电机的寄存器数据
+    esp_err_t read_register(DMRegisterAddress addr);
 
-    esp_err_t write_register(DMRegisterAddress addr,uint32_t value,bool store=false){
-        twai_message_t can_message;
-        can_message.identifier=0x7FF;
-        can_message.data_length_code=8;
-        can_message.extd=0;
-        can_message.self=0;
-        can_message.data[0]=CAN_ID&0xFF;
-        can_message.data[1]=CAN_ID>>8;
-        if(store){
-            can_message.data[2]=0xAA;
-        }else{
-            can_message.data[2]=0x55;
-        }
+    // 写入电机的寄存器数据（支持写入32位值）
+    esp_err_t write_register(DMRegisterAddress addr, uint32_t value, bool store = false);
 
-        can_message.data[3]=addr;
-        memcpy(can_message.data+4,&value,4);
-        return twai_transmit(&can_message,portMAX_DELAY);
-    }
-    esp_err_t write_register(DMRegisterAddress addr,float value,bool store=false){
-        twai_message_t can_message;
-        can_message.identifier=0x7FF;
-        can_message.data_length_code=8;
-        can_message.extd=0;
-        can_message.self=0;
-        can_message.data[0]=CAN_ID&0xFF;
-        can_message.data[1]=CAN_ID>>8;
-        if(store){
-            can_message.data[2]=0xAA;
-        }else{
-            can_message.data[2]=0x55;
-        }
-        can_message.data[3]=addr;
-        memcpy(can_message.data+4,&value,4);
-        return twai_transmit(&can_message,portMAX_DELAY);  
-    }
+    // 重载写寄存器函数，支持写入浮点型数据
+    esp_err_t write_register(DMRegisterAddress addr, float value, bool store = false);
 
-    
-    int MST_ID;//电机反馈数据ID
-    int CAN_ID;//电机控制数据ID
-    //原始数据
-    uint16_t POS_raw;//位置
-    uint16_t VEL_raw;//速度
-    uint16_t TORQUE_raw;//扭矩
-    uint8_t MOS_temp;//MOS温度
-    uint8_t T_Rotor;//电机温度
-    uint8_t ERR;//错误信息
-    DMRegisterData_t register_data;//寄存器数据
-    uint32_t last_update_time=0;//上次更新时间
+    HXC_CAN* can_bus;         // CAN总线对象
+    int MST_ID;               // 电机反馈数据ID
+    int CAN_ID;               // 电机控制数据ID
 
-    int64_t location = 0;//多圈位置
-};         
-//类静态成员要在类外定义
-std::map<int, DMMotor*> DMMotor::motor_map;
+    uint16_t POS_raw;         // 电机位置的原始数据
+    uint16_t VEL_raw;         // 电机速度的原始数据
+    uint16_t TORQUE_raw;      // 电机扭矩的原始数据
+    uint8_t MOS_temp;         // 电机控制器MOS管温度
+    uint8_t T_Rotor;          // 电机转子温度
+    uint8_t ERR;              // 电机错误代码
 
-class DMMotorMIT : public DMMotor{
-public:
+    DMRegisterData_t register_data;  // 电机寄存器数据
+    uint32_t last_can_message_update_time = 0;   // 上次数据更新时间（单位：毫秒）
 
-DMMotorMIT(int MST_ID,int CAN_ID):DMMotor(MST_ID,CAN_ID){};
-
-DMMotorMIT(int MST_ID,int CAN_ID,uint8_t _kd,uint8_t _kp):DMMotor(MST_ID,CAN_ID){
-    Kd=_kd;
-    Kp=_kp;
+    int64_t location = 0;    // 多圈位置（单位：脉冲数）
 };
-//设置数据交互频率参数
-void setDataRate(uint16_t value){
-    value=value>1000?1000:value;
-    value=value<1?1:value;
-    DataRateHz=value;
+
+
+// 构造函数：初始化电机对象，设置CAN总线和电机ID，注册回调函数
+DMMotor::DMMotor(HXC_CAN* can, int MST_ID, int CAN_ID) : can_bus(can), MST_ID(MST_ID), CAN_ID(CAN_ID) {
+
+    //设置CAN接收回调
+    std::function<void(HXC_CAN_message_t*)> motor_data_call_back=std::bind(&DMMotor::update_date_callback,this,std::placeholders::_1);
+
+    can->add_can_receive_callback_func(MST_ID, motor_data_call_back);  // 注册CAN接收回调
 }
 
-
-/**
- * @description: 力矩控制
- * @return {*}
- * @Author: qingmeijiupiao
- * @param {float} __tff 取值范围为[-1,1]
- */
-void set_tff(uint16_t __tff){  
-    Kp=0;
-    Kd=0;
-    t_ff= __tff>((1<<12)-1)?((1<<12)-1): __tff;
+// 使能电机
+esp_err_t DMMotor::enable() {
+    HXC_CAN_message_t can_message;
+    can_message.identifier = CAN_ID;
+    can_message.data_length_code = 8;
+    can_message.extd = 0;
+    can_message.self = 0;
+    memset(can_message.data, 0xFF, 7);  // 数据填充0xFF
+    can_message.data[7] = 0xFC;         // 设置使能命令
+    return can_bus->send(&can_message); // 发送CAN命令
 }
 
-/**
- * @description: 位置模式控制
- * @return {*}
- * @Author: qingmeijiupiao
- * @param {uint16_t} _p_des 16位整数 0-65535 映射到[-P_max,P_max]
- */
-void set_pdes(uint16_t _p_des){
-    p_des= _p_des>((1<<16)-1)?((1<<16)-1): _p_des;
+// 失能电机
+esp_err_t DMMotor::disable() {
+    HXC_CAN_message_t can_message;
+    can_message.identifier = CAN_ID;
+    can_message.data_length_code = 8;
+    can_message.extd = 0;
+    can_message.self = 0;
+    memset(can_message.data, 0xFF, 7);  // 数据填充0xFF
+    can_message.data[7] = 0xFD;         // 设置失能命令
+    return can_bus->send(&can_message); // 发送CAN命令
 }
 
-
-/**
- * @description: 速度模式控制
- * @return {*}
- * @Author: qingmeijiupiao
- * @param {uint16_t} _v_des 12位整数 -4096-4095 映射到[-V_max,V_max]
- */
-void set_vdes(uint16_t _v_des){
-    v_des= _v_des>((1<<12)-1)?((1<<12)-1): _v_des;
+// 保存电机位置零点
+esp_err_t DMMotor::save_zero() {
+    HXC_CAN_message_t can_message;
+    can_message.identifier = CAN_ID;
+    can_message.data_length_code = 8;
+    can_message.extd = 0;
+    can_message.self = 0;
+    memset(can_message.data, 0xFF, 7);  // 数据填充0xFF
+    can_message.data[7] = 0xFE;         // 设置零点保存命令
+    return can_bus->send(&can_message); // 发送CAN命令
 }
 
-/**
- * @description: 初始化MIT电机控制
- * @param {bool} isEnable 是否使能
- * @return {*}
- * @Author: qingmeijiupiao
- */
-void setup(bool isEnable=true){
-    if(isEnable){
-        // while(!is_online()){//等待电机上线
-            enable();//使能
-            delay(10);
-       //}
+// 清除电机错误
+esp_err_t DMMotor::clear_error() {
+    HXC_CAN_message_t can_message;
+    can_message.identifier = CAN_ID;
+    can_message.data_length_code = 8;
+    can_message.extd = 0;
+    can_message.self = 0;
+    memset(can_message.data, 0xFF, 7);  // 数据填充0xFF
+    can_message.data[7] = 0xFB;         // 设置清除错误命令
+    return can_bus->send(&can_message); // 发送CAN命令
+}
+
+// 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
+bool DMMotor::is_online() {
+    if (millis() - last_can_message_update_time > 20 && last_can_message_update_time != 0) {
+        return false; // 20ms内未更新数据，认为电机掉线
     }
-    if(ctrl_task_handle==nullptr){
-        xTaskCreate(DMmotortask,"DMmotortask",4096,this,5,&ctrl_task_handle);
-    }
+    return true; // 电机在线
 }
 
-private:
+// 获取电机的多圈位置
+int64_t DMMotor::get_location() {
+    return location;
+}
 
-    void sendMITpakage(){
-        uint8_t arr[8];
-        arr[0]=p_des>>8;
-        arr[1]=p_des&0xFF;
-        arr[2]=v_des>>4;
-        arr[3]=((v_des&0x0F)<<4)|((Kp>>8)&0x0F);
-        arr[4]=Kp&0xFF;
-        arr[5]=Kd>>4;
-        arr[6]=((Kd&0x0F)<<4)|((t_ff>>8)&0x0F);
-        arr[7]=t_ff&0xFF;
-        twai_message_t can_message;//定义CAN数据对象
-        can_message.identifier=CAN_ID;//电机ID就是CAN地址
-        can_message.data_length_code=8;//数据长度为8字节
-        can_message.self=false;
-        memcpy(can_message.data,arr,8);
-        //发送CAN数据包
-        twai_transmit(&can_message,portMAX_DELAY);
-    }
+// 重置电机的多圈位置（默认为0）
+void DMMotor::reset_location(int l) {
+    location = l;
+}
 
-    static void DMmotortask(void* _motor){
-        DMMotorMIT* motor=(DMMotorMIT*)_motor;
-        while(1){
-            motor->sendMITpakage();
-            delay(1000/motor->DataRateHz);
+// 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
+uint16_t DMMotor::get_pos_raw() {
+    return POS_raw;
+}
+
+// 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
+uint16_t DMMotor::get_vel_raw() {
+    return VEL_raw;
+}
+
+// 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
+uint16_t DMMotor::get_torque_raw() {
+    return TORQUE_raw;
+}
+
+// 获取电机的错误代码
+uint8_t DMMotor::get_error() {
+    return ERR;
+}
+
+// 获取电机的控制器温度（单位：摄氏度）
+uint8_t DMMotor::get_controller_temperature() {
+    return MOS_temp;
+}
+
+// 获取电机的转子温度（单位：摄氏度）
+uint8_t DMMotor::get_motor_temperature() {
+    return T_Rotor;
+}
+
+// 更新电机数据的回调函数
+void DMMotor::update_date_callback(HXC_CAN_message_t* can_message) {
+    uint8_t* arr = can_message->data;
+    ERR = arr[0] >> 4;              // 获取错误代码
+    uint16_t POS = (arr[1] << 8) | arr[2];  // 获取位置数据
+    VEL_raw = (arr[3] << 4) | (arr[4] >> 4);  // 获取速度数据
+    TORQUE_raw = ((arr[4] & 0x0F) << 8) | arr[5];  // 获取扭矩数据
+    MOS_temp = arr[6];              // 获取MOS管温度
+    T_Rotor = arr[7];               // 获取电机转子温度
+
+    // 更新电机的多圈位置
+    int delta = 0;
+    if ((POS + 65535 - POS_raw) % 65535 < 32768) {  // 正转
+        delta = POS - POS_raw;
+        if (delta < 0) {
+            delta += 65535;
         }
-    };
+    } else {  // 反转
+        delta = POS - POS_raw;
+        if (delta > 0) {
+            delta -= 65535;
+        }
+    }
 
-    uint8_t Kp=0;//位置控制系数，使用速度控制时置为零
-    uint8_t Kd=0;//速度控制系数,当使用位置控制时，此参数！不！能！为！零！
-    uint16_t DataRateHz=1000;//数据交互频率
-    uint16_t p_des=0; //位置串级控制参数
-    uint16_t v_des=0.5*(1<<12);//速度串级控制参数
-    uint16_t t_ff=0.5*(1<<12);//力矩串级控制参数
-    
+    // 更新电机的多圈位置
+    location += delta;
+    POS_raw = POS;
+    last_can_message_update_time = millis();  // 更新最后更新时间
+}
 
-    TaskHandle_t ctrl_task_handle=nullptr;
-};
+// 读取电机寄存器数据
+esp_err_t DMMotor::read_register(DMRegisterAddress addr) {
+    HXC_CAN_message_t can_message;
+    can_message.identifier = 0x7FF;
+    can_message.data_length_code = 8;
+    can_message.extd = 0;
+    can_message.self = 0;
+    can_message.data[0] = CAN_ID & 0xFF;
+    can_message.data[1] = CAN_ID >> 8;
+    can_message.data[2] = 0x33;
+    can_message.data[3] = addr;
+    return can_bus->send(&can_message); // 发送读取寄存器的CAN命令
+}
+
+// 写入电机寄存器数据（支持写入32位值）
+esp_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value, bool store) {
+    HXC_CAN_message_t can_message;
+    can_message.identifier = 0x7FF;
+    can_message.data_length_code = 8;
+    can_message.extd = 0;
+    can_message.self = 0;
+    can_message.data[0] = CAN_ID & 0xFF;
+    can_message.data[1] = CAN_ID >> 8;
+    can_message.data[2] = store ? 0xAA : 0x55;  // 根据store参数设置命令
+    can_message.data[3] = addr;
+    memcpy(can_message.data + 4, &value, 4);  // 将值写入数据中
+    return can_bus->send(&can_message);  // 发送写入寄存器的CAN命令
+}
+
+// 重载写寄存器函数，支持写入浮点型数据
+esp_err_t DMMotor::write_register(DMRegisterAddress addr, float value, bool store) {
+    HXC_CAN_message_t can_message;
+    can_message.identifier = 0x7FF;
+    can_message.data_length_code = 8;
+    can_message.extd = 0;
+    can_message.self = 0;
+    can_message.data[0] = CAN_ID & 0xFF;
+    can_message.data[1] = CAN_ID >> 8;
+    can_message.data[2] = store ? 0xAA : 0x55;  // 根据store参数设置命令
+    can_message.data[3] = addr;
+    memcpy(can_message.data + 4, &value, 4);  // 将浮点值写入数据中
+    return can_bus->send(&can_message);  // 发送写入寄存器的CAN命令
+}
+
 
 #endif

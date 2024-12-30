@@ -1,11 +1,168 @@
 /*
- * @Description: 对twai库的二次封装,实现CAN回调函数,默认1Mbps波特率
- * @Author: qingmeijiupiao
- * @Date: 2024-04-13 21:00:21
- * @LastEditTime: 2024-11-21 20:09:34
+ * @version: 2.0
  * @LastEditors: qingmeijiupiao
- * @rely:
-*/
+ * @Description: HXC CAN基类文件,需要用到CAN时应该使用此类作为传入类型，方便扩展不同的CAN方式
+ * @Author: qingmeijiupiao
+ * @LastEditTime: 2024-12-20 16:04:02
+ */
+
+#ifndef HXC_CAN_BASE_HPP
+#define HXC_CAN_BASE_HPP
+#include <map>
+
+/*↓↓↓本文件的声明↓↓↓*/
+
+//CAN基类,需要用到CAN时应该使用此类作为传入类型，方便扩展不同的CAN方式
+class HXC_CAN;
+
+//CAN消息结构体
+struct HXC_CAN_message_t;
+
+//CAN消息接收回调函数
+using HXC_can_feedback_func= std::function<void(HXC_CAN_message_t* can_message)>;
+
+//CAN速率枚举
+enum CAN_RATE{
+  CAN_RATE_1MBIT,
+  CAN_RATE_800KBIT,
+  CAN_RATE_500KBIT,
+  CAN_RATE_250KBIT,
+  CAN_RATE_125KBIT,
+  CAN_RATE_100KBIT
+};
+
+
+/*↑↑↑本文件的声明↑↑↑*/
+
+//CAN消息结构体
+struct HXC_CAN_message_t{
+  bool extd=0;           /**< 扩展帧格式标志（29位ID） */
+  bool rtr=0;            /**< 远程帧标志 */
+  bool self=0;           /**< 自我接收请求。接收时无效。 */
+  uint32_t identifier;                /**< 11或29位标识符 */
+  uint8_t data_length_code;           /**< 数据长度代码 */
+  uint8_t data[8];    /**< 数据字节（在RTR帧中无关） */
+};
+
+//CAN基类
+class HXC_CAN {
+public:
+    // 防止值传递CAN对象
+    HXC_CAN(const HXC_CAN&) = delete;               /**< 删除拷贝构造函数 */
+    HXC_CAN& operator=(const HXC_CAN&) = delete;    /**< 删除拷贝赋值函数 */
+    HXC_CAN(HXC_CAN&&) = delete;                    /**< 删除移动构造函数 */
+    HXC_CAN& operator=(HXC_CAN&&) = delete;         /**< 删除移动赋值函数 */
+
+    HXC_CAN();  /**< 默认构造函数 */
+    virtual ~HXC_CAN();  /**< 析构函数 */
+
+    /**
+     * @description: 初始化
+     * @return {esp_err_t} 成功返回ESP_OK
+     * @Author: qingmeijiupiao
+     * @param {CAN_RATE} can_rate CAN速率
+     */
+    virtual esp_err_t setup(CAN_RATE can_rate);
+
+    /**
+     * @description: 发送CAN消息
+     * @return {esp_err_t} 成功返回ESP_OK
+     * @Author: qingmeijiupiao
+     * @param {HXC_CAN_message_t*} message CAN消息指针
+     */
+    virtual esp_err_t send(HXC_CAN_message_t* message);
+
+    /**
+     * @description: 发送CAN消息
+     * @return {esp_err_t} 成功返回ESP_OK
+     * @Author: qingmeijiupiao
+     * @param {HXC_CAN_message_t} message CAN消息
+     */
+    virtual esp_err_t send(HXC_CAN_message_t message);
+
+    /**
+     * @description: 添加CAN消息接收回调,收到对应地址的消息时运行回调函数
+     * @return {*}
+     * @Author: qingmeijiupiao
+     * @param {int} addr CAN消息地址
+     * @param {HXC_can_feedback_func} func 回调函数
+     */
+    void add_can_receive_callback_func(int addr, HXC_can_feedback_func func);
+
+    /**
+     * @description: 移除CAN消息接收回调函数
+     * @return {*}
+     * @Author: qingmeijiupiao
+     * @param {int} addr CAN消息地址
+     */
+    void remove_can_receive_callback_func(int addr);
+
+    /**
+     * @description: 判断CAN消息接收回调函数是否存在
+     * @return {bool} 如果回调函数存在则返回true，否则返回false
+     * @Author: qingmeijiupiao
+     * @param {int} addr CAN消息地址
+     */
+    bool exist_can_receive_callback_func(int addr);
+
+
+    bool get_setup_flag();
+protected:
+    std::map<int, HXC_can_feedback_func> func_map;  /**< CAN回调函数映射表 */
+    bool is_setup = false;  /**< CAN初始化状态标志 */
+    CAN_RATE can_rate;  /**< 当前CAN速率 */
+};
+
+
+
+/*↓↓↓↓↓函数定义↓↓↓↓↓*/
+
+
+
+// 默认构造函数
+HXC_CAN::HXC_CAN() : is_setup(false), can_rate(CAN_RATE_1MBIT) {}
+
+// 析构函数
+HXC_CAN::~HXC_CAN() {}
+
+// 初始化函数
+esp_err_t HXC_CAN::setup(CAN_RATE can_rate) {
+    return ESP_FAIL; //不应该调用基类的setup函数
+}
+
+// 发送CAN消息函数，接收消息指针作为参数
+esp_err_t HXC_CAN::send(HXC_CAN_message_t* message) {
+    return ESP_FAIL; //不应该调用基类的send函数
+}
+
+// 发送CAN消息函数，接收CAN消息对象作为参数
+esp_err_t HXC_CAN::send(HXC_CAN_message_t message) {
+    return ESP_FAIL; //不应该调用基类的send函数
+}
+
+// 添加CAN消息接收回调函数
+void HXC_CAN::add_can_receive_callback_func(int addr, HXC_can_feedback_func func) {
+    func_map[addr] = func;  // 将回调函数存入映射表
+}
+
+// 移除CAN消息接收回调函数
+void HXC_CAN::remove_can_receive_callback_func(int addr) {
+    if (!exist_can_receive_callback_func(addr)) {
+        return;  // 如果回调函数不存在，则返回
+    }
+    func_map.erase(addr);  // 从映射表中删除回调函数
+}
+
+// 判断CAN消息接收回调函数是否存在
+bool HXC_CAN::exist_can_receive_callback_func(int addr) {
+    return func_map.find(addr) != func_map.end();  // 如果地址存在于映射表中，则返回true
+}
+
+bool HXC_CAN::get_setup_flag(){
+    return is_setup;
+};
+
+#endif
 /*
                                               .=%@#=.                                               
                                             -*@@@@@@@#=.                                            
@@ -77,73 +234,3 @@
                     ####                                                                            
                       K                                                                             
 */
-#ifndef ESP_CAN_HPP
-#define ESP_CAN_HPP
-#include <Arduino.h>
-#include "driver/twai.h" //can驱动,esp32sdk自带
-
-/*↓↓↓本文件的类和函数↓↓↓*/
-
-//初始化CAN
-void  can_setup(uint8_t TX_PIN=8, uint8_t RX_PIN=18);//这里默认是HXC开发板A的CAN芯片引脚
-
-//添加用户自定义的can消息接收函数，用于处理非电机的数据,addr：要处理的消息的地址，func：回调函数
-void  add_user_can_func(int addr,std::function<void(twai_message_t* can_message)> func);
-
-//全局CAN反馈任务,无需手动创建
-void  can_feedback_update_task(void* n);
-
-/*↑↑↑本文件的类和函数↑↑↑*/
-
-
-
-//初始化CAN
-void  can_setup(uint8_t TX_PIN, uint8_t RX_PIN){
-    //TX是指CAN收发芯片的TX,RX同理
-    //检测TWAI驱动是否已经安装
-    twai_status_info_t now_twai_status;
-    auto status = twai_get_status_info(&now_twai_status);
-    if(status != ESP_ERR_INVALID_STATE){//如果驱动重复安装
-        return;
-    }
-
-
-    //总线速率,1Mbps
-    static const twai_timing_config_t t_config = TWAI_TIMING_CONFIG_1MBITS();
-    //滤波器设置,接受所有地址的数据
-    static const twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-    //总线配置
-    static const twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(gpio_num_t(TX_PIN), gpio_num_t(RX_PIN), TWAI_MODE_NO_ACK);
-
-    //传入驱动配置信息
-    twai_driver_install(&g_config, &t_config, &f_config);
-    //CAN驱动启动
-    twai_start();
-    //创建任务
-    xTaskCreate(can_feedback_update_task,"can_fb",4096,nullptr,5,nullptr);//can反馈任务
-
-};
-
-//CAN反馈函数
-using can_feedback_func= std::function<void(twai_message_t* can_message)>;
-
-std::map<int,can_feedback_func> func_map;//can回调map
-
-//添加用户自定义的can消息接收函数，用于处理非电机的数据,addr：要处理的消息的地址
-void add_user_can_func(int addr,std::function<void(twai_message_t* can_message)> func){
-    func_map[addr]=func;
-};
-
-//接收CAN总线上的数据的任务函数
-void can_feedback_update_task(void* n){
-    twai_message_t rx_message;
-    while (1){
-        //接收CAN上数据
-        ESP_ERROR_CHECK(twai_receive(&rx_message, portMAX_DELAY));
-        //查看是否为需要的can消息地址，如果是就调用函数
-        if(func_map.find(rx_message.identifier)!=func_map.end()){
-            func_map[rx_message.identifier](&rx_message);
-        }
-    }
-}
-#endif
