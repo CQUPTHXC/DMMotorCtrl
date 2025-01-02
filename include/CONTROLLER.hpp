@@ -68,6 +68,6 @@ public:
 CONTROLLER_DATA_t remote_data;
 
 
-void test_callback(ESPNOW::data_package ESPNOW_DATA){
+void test_callback(HXC_ESPNOW_data_pakage ESPNOW_DATA){
   remote_data.array_to_data(ESPNOW_DATA.data);
 }

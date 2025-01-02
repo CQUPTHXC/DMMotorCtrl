@@ -2,12 +2,12 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-12-31 09:54:10
+ * @LastEditTime: 2025-01-02 08:38:43
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
 #include <Arduino.h>
-#include "../HXC_CAN.hpp"
+#include "HXC_CAN.hpp"
 #include <map>
 #include "DMRegister.hpp"
 #include <math.h>
@@ -29,6 +29,12 @@ public:
 
     // 清除电机错误
     esp_err_t clear_error();
+
+    // 获取电机的MST ID
+    int get_MST_ID();
+
+    // 获取电机的CAN ID
+    int get_CAN_ID();
 
     // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
     bool is_online();
@@ -59,7 +65,7 @@ public:
 
 protected:
     //can消息回调函数
-    void can_message_callback(HXC_CAN_message_t* can_message)
+    void can_message_callback(HXC_CAN_message_t* can_message);
 
     // 电机数据的回调函数
     void update_date_callback(uint8_t* arr);
@@ -82,8 +88,10 @@ protected:
     //写寄存器数据立即生效，但无法进行存储，掉电后丢失，需要发送存储参数的命令，将修改的参数全部写入片内
     esp_err_t save_register(DMRegisterAddress addr);
     
-
     HXC_CAN* can_bus;         // CAN总线对象
+
+private:
+
     int MST_ID;               // 电机反馈数据ID
     int CAN_ID;               // 电机控制数据ID
 
@@ -94,15 +102,13 @@ protected:
     uint8_t T_Rotor;          // 电机转子温度
     uint8_t ERR;              // 电机错误代码
 
-    DMRegisterData_t register_data;  // 电机寄存器数据
     uint32_t last_can_message_update_time = 0;   // 上次数据更新时间（单位：毫秒）
 
     int64_t location = 0;    // 多圈位置（单位：脉冲数）
-    
     bool can_register_flag=false;//是否在等待寄存器数据
     uint8_t register_buffer_addr=0;//接收到的寄存器数据地址
     uint8_t register_buffer[4]={0,0,0,0};//寄存器数据缓冲区
-    constexpr const int READ_REGISTER_TIMEOUT=100;//读取寄存器超时时间 毫秒
+    constexpr static const int READ_REGISTER_TIMEOUT=100;//读取寄存器超时时间 毫秒
 };
 
 
@@ -113,6 +119,14 @@ DMMotor::DMMotor(HXC_CAN* can, int MST_ID, int CAN_ID) : can_bus(can), MST_ID(MS
     std::function<void(HXC_CAN_message_t*)> motor_can_message_call_back=std::bind(&DMMotor::can_message_callback,this,std::placeholders::_1);
 
     can->add_can_receive_callback_func(MST_ID, motor_can_message_call_back);  // 注册CAN接收回调
+}
+
+int DMMotor::get_MST_ID() {
+    return MST_ID;
+}
+
+int DMMotor::get_CAN_ID() {
+    return CAN_ID;
 }
 
 // 使能电机
@@ -313,7 +327,7 @@ esp_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
     while(millis()-start_time<READ_REGISTER_TIMEOUT){//等待超时
         if(register_buffer_addr==addr){
             //比较数据
-            int temp = memcmp(register_buffer,value,4);
+            int temp = memcmp(register_buffer,&value,4);
             
             //清除标志位
             can_register_flag=false;
@@ -356,7 +370,7 @@ esp_err_t DMMotor::write_register(DMRegisterAddress addr, float value) {
     while(millis()-start_time<READ_REGISTER_TIMEOUT){//等待超时
         if(register_buffer_addr==addr){
             //比较数据
-            int temp = memcmp(register_buffer,value,4);
+            int temp = memcmp(register_buffer,&value,4);
             
             //清除标志位
             can_register_flag=false;

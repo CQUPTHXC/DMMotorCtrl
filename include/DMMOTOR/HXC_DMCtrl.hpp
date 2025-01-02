@@ -2,13 +2,12 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2024-12-30 21:11:19
+ * @LastEditTime: 2025-01-02 08:41:26
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
 #include "DMCtrlMIT.hpp"
 #include "PID_CONTROL.hpp"
-#include "HXCthread.hpp"
 class HXC_DMCtrl : protected DMMotorMIT{
     public:
     //禁止电机拷贝传递
@@ -30,10 +29,7 @@ class HXC_DMCtrl : protected DMMotorMIT{
     HXC_DMCtrl(HXC_CAN*can,int MST_ID,int CAN_ID,pid_param speed_pid,pid_param location_pid);
     ~HXC_DMCtrl(){};
     //初始化,位置闭环,使能
-    void setup(bool is_enable = true);
-
-    // 判断电机是否在线
-    bool is_online();
+    void setup(bool is_enable = true)override;
 
     // 停止电机，并根据需要卸载使能
     void stop(bool need_unload = true);
@@ -52,15 +48,6 @@ class HXC_DMCtrl : protected DMMotorMIT{
 
     // 设置多圈目标位置
     void set_location(int64_t _location);
-
-    // 重置当前多圈位置
-    void reset_location(int64_t _location = 0);
-
-    // 获取当前多圈位置
-    int64_t get_location();
-
-    // 获取当前力矩原始值
-    int get_Torque_raw();
 
     // 设置最大力矩（0-1）
     void set_max_Torque(float _max_Torque);
@@ -107,6 +94,41 @@ class HXC_DMCtrl : protected DMMotorMIT{
      * @param 返回值为力矩 -1~1，输入为位置(int64_t)的映射函数或者lambda
      */
     void add_location_to_Torque_func(std::function<int(int64_t)> func);
+
+    /*基类接口*/
+
+    // 使能电机 对应0xFC命令
+    using DMMotor::enable;
+    
+    // 失能电机 对应0xFD命令
+    using DMMotor::disable;
+    // 保存电机位置零点
+    using DMMotor::save_zero;
+    // 清除电机错误
+    using DMMotor::clear_error;
+    // 获取电机的MST ID
+    using DMMotor::get_MST_ID;
+    // 获取电机的CAN ID
+    using DMMotor::get_CAN_ID;
+    // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
+    using DMMotor::is_online;
+    // 获取电机的多圈位置
+    using DMMotor::get_location;
+    // 重置电机的多圈位置（默认为0）
+    using DMMotor::reset_location;
+    // 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
+    using DMMotor::get_pos_raw;
+    // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
+    using DMMotor::get_vel_raw;
+    // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
+    using DMMotor::get_torque_raw;
+    // 获取电机的错误代码
+    using DMMotor::get_error;
+    // 获取电机的控制器温度（单位：摄氏度）
+    using DMMotor::get_controller_temperature;
+    // 获取电机的转子温度（单位：摄氏度）
+    using DMMotor::get_motor_temperature;
+
 protected:
     int64_t location_taget = 0;        // 目标位置
     int64_t speed_location_taget = 0;  // 速度目标位置
@@ -171,9 +193,6 @@ void HXC_DMCtrl::setup(bool is_enable){
     }
 }
 
-bool HXC_DMCtrl::is_online(){
-    return millis() - last_can_message_update_time < 20;
-}
 
 // 停止电机，并根据需要卸载使能
 void HXC_DMCtrl::stop(bool need_unload){
@@ -206,20 +225,6 @@ void HXC_DMCtrl::set_speed_pid(pid_param pid){
 void HXC_DMCtrl::set_location(int64_t _location){
     location_taget = _location;
 }
-// 重置当前多圈位置
-void HXC_DMCtrl::reset_location(int64_t _location){
-    location = _location;
-}
-
-// 获取当前多圈位置
-int64_t HXC_DMCtrl::get_location(){
-    return location;
-}
-
-// 获取当前力矩原始值
-int HXC_DMCtrl::get_Torque_raw(){
-    return TORQUE_raw;
-}
 
 // 设置最大力矩（0-1）
 void HXC_DMCtrl::set_max_Torque(float _max_Torque){
@@ -245,7 +250,7 @@ bool HXC_DMCtrl::get_is_load(){
 }
 // 获取当前速度（单位：RPM）
 float HXC_DMCtrl::get_now_speed(){
-    return VEL_raw;
+    return get_vel_raw();
 }
 
 // 设置目标速度，单位：RPM，加速度控制
@@ -307,7 +312,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
     int last_update_speed_time=micros();
     moto->speed_pid_contraler.reset();
     //在unload过后出现扰动，再次load之后不会回到扰动前的位置
-    moto->speed_location_taget = moto->location;
+    moto->speed_location_taget = moto->get_location();
 
     float taget_control_speed = moto->taget_speed;
     float last_taget_control_speed = moto->taget_speed;
@@ -336,16 +341,16 @@ void HXC_DMCtrl::speed_contral_task(void* n){
 
         //由速度误差和位置误差一同计算电流
         double err = 
-        /*速度环的误差=*/(taget_control_speed - moto->VEL_raw)
+        /*速度环的误差=*/(taget_control_speed - moto->get_vel_raw())
         +
         /*速度环位置误差比例系数=*/moto->speed_location_K/*这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿*/
         * 
-        /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->location)/8192;
+        /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->get_location())/8192;
 
         
         //计算控制力矩
         float Torque = 
-        /*位置映射的力矩=*/moto->location_to_Torque_func(moto->location)
+        /*位置映射的力矩=*/moto->location_to_Torque_func(moto->get_location())
         +
         /*PID控制器的计算力矩=*/moto->speed_pid_contraler.control(moto->is_online()*err);//电机在线才计算电流
         
@@ -360,7 +365,7 @@ void HXC_DMCtrl::location_contral_task(void* n){
     float speed=0;
     while (1){
         //位置闭环控制,由位置误差决定速度,再由速度误差决定电流
-        speed = moto->location_pid_contraler.control(moto->location_taget - moto->location);
+        speed = moto->location_pid_contraler.control(moto->location_taget - moto->get_location());
         moto->taget_speed = speed;
         delay(1000/moto->control_frequency);
     }

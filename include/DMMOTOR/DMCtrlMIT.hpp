@@ -28,8 +28,41 @@ public:
 
     // 初始化MIT电机控制
     // 参数isEnable：是否使能电机，默认为true
-    void setup(bool isEnable = true);
+    virtual void setup(bool isEnable = true);
 
+    /*基类接口*/
+
+    // 使能电机 对应0xFC命令
+    using DMMotor::enable;
+    
+    // 失能电机 对应0xFD命令
+    using DMMotor::disable;
+    // 保存电机位置零点
+    using DMMotor::save_zero;
+    // 清除电机错误
+    using DMMotor::clear_error;
+    // 获取电机的MST ID
+    using DMMotor::get_MST_ID;
+    // 获取电机的CAN ID
+    using DMMotor::get_CAN_ID;
+    // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
+    using DMMotor::is_online;
+    // 获取电机的多圈位置
+    using DMMotor::get_location;
+    // 重置电机的多圈位置（默认为0）
+    using DMMotor::reset_location;
+    // 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
+    using DMMotor::get_pos_raw;
+    // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
+    using DMMotor::get_vel_raw;
+    // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
+    using DMMotor::get_torque_raw;
+    // 获取电机的错误代码
+    using DMMotor::get_error;
+    // 获取电机的控制器温度（单位：摄氏度）
+    using DMMotor::get_controller_temperature;
+    // 获取电机的转子温度（单位：摄氏度）
+    using DMMotor::get_motor_temperature;
 protected:
     // 发送MIT电机控制数据包
     void sendMITpakage();
@@ -113,7 +146,7 @@ void DMMotorMIT::sendMITpakage() {
     arr[7] = t_ff & 0xFF;      // t_ff低8位
 
     HXC_CAN_message_t can_message; // 定义CAN消息对象
-    can_message.identifier = CAN_ID;  // 电机ID就是CAN地址
+    can_message.identifier = this->get_CAN_ID();  // 电机ID就是CAN地址
     can_message.data_length_code = 8; // 数据长度为8字节
     can_message.self = false;
     memcpy(can_message.data, arr, 8); // 填充数据
