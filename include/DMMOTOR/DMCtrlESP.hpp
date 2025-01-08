@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-01-09 00:25:40
+ * @LastEditTime: 2025-01-09 00:38:38
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -218,6 +218,14 @@ uint16_t DMMotor::get_torque_raw() {
 }
 
 // 获取电机的错误代码
+// 对应故障类型为：
+// 8——超压；
+// 9——欠压；
+// A——过电流；
+// B——MOS过温；
+// C——电机线圈过温；
+// D——通讯丢失；
+// E——过载；
 uint8_t DMMotor::get_error() {
     return ERR;
 }

@@ -2,6 +2,7 @@
 #define DM_CTRLSPEED_HPP
 #include "DMCtrlESP.hpp"
 
+// DMMotorSpeed类继承自DMMotor类，用速度模式控制电机
 class DMMotorSpeed : public DMMotor {
 public:
     // 构造函数，初始化电机对象，注册CAN接收回调
@@ -61,6 +62,7 @@ protected:
     float v_des = 0; // 速度，单位rad/s
     TaskHandle_t ctrl_task_handle = nullptr; // 控制任务句柄
 };
+// 构造函数，初始化电机对象，注册CAN接收回调
 DMMotorSpeed::DMMotorSpeed(HXC_CAN* can, int MST_ID, int CAN_ID) : DMMotor(can, MST_ID, CAN_ID){}; 
 
 void DMMotorSpeed::set_Speed(float _speed) {

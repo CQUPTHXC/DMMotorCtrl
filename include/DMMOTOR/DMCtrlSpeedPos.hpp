@@ -2,6 +2,7 @@
 #define DM_CTRLSPEEDPOS_HPP
 #include "DMCtrlESP.hpp"
 
+// DMMotorSpeedPos类继承自DMMotor类，用位置速度模式控制电机
 class DMMotorSpeedPos : public DMMotor {
 public:
     // 构造函数，初始化电机对象，注册CAN接收回调
