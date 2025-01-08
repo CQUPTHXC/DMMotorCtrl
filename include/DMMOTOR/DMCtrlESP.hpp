@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-01-02 08:38:43
+ * @LastEditTime: 2025-01-09 00:25:40
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -11,6 +11,13 @@
 #include <map>
 #include "DMRegister.hpp"
 #include <math.h>
+
+// 默认控制任务栈大小
+constexpr uint32_t DM_default_ctrl_task_stack_size = 4096;
+// 默认控制任务优先级
+constexpr uint8_t DM_default_ctrl_task_priority = 5;
+// 默认控制任务名
+constexpr char* DM_default_ctrl_task_name = "DMmotortask";
 
 // 达妙电机基类
 class DMMotor {
@@ -250,17 +257,20 @@ void DMMotor::update_date_callback(uint8_t* arr) {
     MOS_temp = arr[6];              // 获取MOS管温度
     T_Rotor = arr[7];               // 获取电机转子温度
 
+    constexpr int MAX_POSITION=65535;//最大位置
+    constexpr int HALF_POSITION=32768;//半最大位置
+
     // 更新电机的多圈位置
     int delta = 0;
-    if ((POS + 65535 - POS_raw) % 65535 < 32768) {  // 正转
+    if ((POS + MAX_POSITION - POS_raw) % MAX_POSITION < HALF_POSITION) {  // 正转
         delta = POS - POS_raw;
         if (delta < 0) {
-            delta += 65535;
+            delta += MAX_POSITION;
         }
     } else {  // 反转
         delta = POS - POS_raw;
         if (delta > 0) {
-            delta -= 65535;
+            delta -= MAX_POSITION;
         }
     }
 

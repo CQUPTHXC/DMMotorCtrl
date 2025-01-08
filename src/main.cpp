@@ -9,12 +9,17 @@
 #include "CONTROLLER.hpp"
 #include "DJIMotorCtrlESP.hpp"
 #include "./DMMOTOR/HXC_DMCtrl.hpp"
+#include "HXC_TWAI.hpp"
 
+HXC_TWAI twai;
 // M3508_P19 M3508(1);
 
 // // //达妙电机MIT控制类
 
-// DMMotorMIT gm6220(0,1,0.0928*255,0.748*255);
+DMMotorMIT gm6220(&twai,0,1,0.0928*255,0.748*255);
+DMMotorMIT M3519(&twai,1,2,0.0928*255,0.748*255);
+
+
 
 // //二维向量,极坐标表示
 // struct dir_and_value
@@ -87,6 +92,10 @@ void setup() {
   // gm6220.setup();
   // M3508.set_max_curunt(16384);
   // M3508.setup();
+
+
+  gm6220.set_pdes(32768);
+  M3519.set_pdes(32768);
   
 }
 void loop() {

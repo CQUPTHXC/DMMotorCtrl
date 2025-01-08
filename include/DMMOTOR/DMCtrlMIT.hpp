@@ -129,7 +129,7 @@ void DMMotorMIT::setup(bool isEnable) {
 
     if (ctrl_task_handle == nullptr) {
         // 创建一个控制任务，以周期性发送控制指令
-        xTaskCreate(DMmotortask, "DMmotortask", 4096, this, 5, &ctrl_task_handle);
+        xTaskCreate(DMmotortask, DM_default_ctrl_task_name, DM_default_ctrl_task_stack_size, this, DM_default_ctrl_task_priority, &ctrl_task_handle);
     }
 }
 
@@ -155,7 +155,7 @@ void DMMotorMIT::sendMITpakage() {
 
 // 控制任务函数
 void DMMotorMIT::DMmotortask(void* _motor) {
-    DMMotorMIT* motor = (DMMotorMIT*)_motor;
+    DMMotorMIT* motor = reinterpret_cast<DMMotorMIT*>(_motor);
     while (1) {
         motor->sendMITpakage(); // 每次循环发送数据包
         delay(1000 / motor->DataRateHz); // 根据数据频率设置延时
