@@ -1,3 +1,10 @@
+/*
+ * @version: no version
+ * @LastEditors: qingmeijiupiao
+ * @Description: 达妙电机寄存器
+ * @author: qingmeijiupiao
+ * @LastEditTime: 2025-01-20 20:58:34
+ */
 #ifndef DMRegister_HPP
 #define DMRegister_HPP
 //DM寄存器

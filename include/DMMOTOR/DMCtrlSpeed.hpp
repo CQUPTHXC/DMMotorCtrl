@@ -1,3 +1,10 @@
+/*
+ * @version: no version
+ * @LastEditors: qingmeijiupiao
+ * @Description: 达妙电机速度控制
+ * @author: qingmeijiupiao
+ * @LastEditTime: 2025-01-20 20:58:07
+ */
 #ifndef DM_CTRLSPEED_HPP
 #define DM_CTRLSPEED_HPP
 #include "DMCtrlESP.hpp"

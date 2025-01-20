@@ -1,3 +1,10 @@
+/*
+ * @version: no version
+ * @LastEditors: qingmeijiupiao
+ * @Description: 达妙电机MIT控制
+ * @author: qingmeijiupiao
+ * @LastEditTime: 2025-01-20 20:57:39
+ */
 #ifndef DM_Ctrl_MIT_HPP
 #define DM_Ctrl_MIT_HPP
 

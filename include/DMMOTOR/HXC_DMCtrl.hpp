@@ -1,8 +1,8 @@
 /*
  * @LastEditors: qingmeijiupiao
- * @Description: HXC达妙电机控制
+ * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-01-20 09:27:25
+ * @LastEditTime: 2025-01-20 21:00:21
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -170,8 +170,8 @@ protected:
     // 位置闭环控制任务
     static void location_contral_task(void* n);
 
-    // 位置到电流的映射函数
-    std::function<int(int64_t)> location_to_Torque_func = [](int64_t location) { return 0; };
+    // 位置到力矩的映射函数 ，输入为位置，输出为力矩[-1~1]，需要在函数中限幅
+    std::function<float(int64_t)> location_to_Torque_func = [](int64_t location) { return 0; };
 
 };
 
