@@ -156,9 +156,13 @@ void DMMotorMIT::sendMITpakage() {
 // 控制任务函数
 void DMMotorMIT::DMmotortask(void* _motor) {
     DMMotorMIT* motor = reinterpret_cast<DMMotorMIT*>(_motor);
+    // 获取当前时间
+    auto xLastWakeTime = xTaskGetTickCount();
     while (1) {
-        motor->sendMITpakage(); // 每次循环发送数据包
-        delay(1000 / motor->DataRateHz); // 根据数据频率设置延时
+        // 每次循环发送数据包
+        motor->sendMITpakage();
+        // 根据数据频率设置延时 
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motor->DataRateHz);
     }
 }
 

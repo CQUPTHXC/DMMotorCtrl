@@ -104,9 +104,11 @@ void DMMotorSpeed::setup(bool isEnable) {
 // 控制任务函数
 void DMMotorSpeed::DMmotortask(void* _motor) {
     DMMotorSpeed* motor = reinterpret_cast<DMMotorSpeed*>(_motor);
+    // 获取当前时间
+    auto xLastWakeTime = xTaskGetTickCount ();
     while (1) {
         motor->sendSpeedPospakage(); // 每次循环发送数据包
-        delay(1000 / motor->DataRateHz); // 根据数据频率设置延时
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motor->DataRateHz);
     }
 }
 #endif

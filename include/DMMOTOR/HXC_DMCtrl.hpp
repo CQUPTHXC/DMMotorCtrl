@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-01-02 08:41:26
+ * @LastEditTime: 2025-01-20 09:27:25
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -299,9 +299,11 @@ void HXC_DMCtrl::add_location_to_Torque_func(std::function<int(int64_t)> func){
 // 力矩控制任务的入口函数
 void HXC_DMCtrl::torque_current_task(void* p){
     HXC_DMCtrl* motor = (HXC_DMCtrl*)p;
+    auto xLastWakeTime = xTaskGetTickCount ();
     while (1) {
         motor->sendMITpakage();
-        vTaskDelay(1000 / motor->control_frequency);
+        //控制频率
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motor->control_frequency);
     }
 }
 
@@ -316,6 +318,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
 
     float taget_control_speed = moto->taget_speed;
     float last_taget_control_speed = moto->taget_speed;
+    auto xLastWakeTime = xTaskGetTickCount ();
     while (1){
         float delta_time=1e-6*(micros()-last_update_speed_time); 
         
@@ -355,7 +358,8 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         /*PID控制器的计算力矩=*/moto->speed_pid_contraler.control(moto->is_online()*err);//电机在线才计算电流
         
         moto->set_tff((Torque*4096)+2047);//设置力矩
-        delay(1000/moto->control_frequency);
+        //控制频率
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
     }
 }
 // 位置控制任务的入口函数
@@ -363,11 +367,13 @@ void HXC_DMCtrl::location_contral_task(void* n){
     HXC_DMCtrl* moto = (HXC_DMCtrl*) n;
     moto->location_pid_contraler.reset();//重置位置闭环控制器
     float speed=0;
+    auto xLastWakeTime = xTaskGetTickCount ();
     while (1){
         //位置闭环控制,由位置误差决定速度,再由速度误差决定电流
         speed = moto->location_pid_contraler.control(moto->location_taget - moto->get_location());
         moto->taget_speed = speed;
-        delay(1000/moto->control_frequency);
+        //控制频率
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
     }
 };
 #endif
