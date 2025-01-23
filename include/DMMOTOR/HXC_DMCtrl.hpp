@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-01-20 21:00:21
+ * @LastEditTime: 2025-01-23 21:11:19
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -132,9 +132,9 @@ class HXC_DMCtrl : protected DMMotorMIT{
 protected:
     int64_t location_taget = 0;        // 目标位置
     int64_t speed_location_taget = 0;  // 速度目标位置
-    pid_param default_location_pid_parmater={0.1,0.1,0,2000,3000};  // 默认位置PID参数
+    pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
     PID_CONTROL location_pid_contraler;      // 位置PID控制器
-    pid_param default_speed_pid_parmater={5,1,0.01,1,10000};    // 默认速度PID参数
+    pid_param default_speed_pid_parmater={0.01,0.02,0.00001,1,1};    // 默认速度PID参数
     PID_CONTROL speed_pid_contraler;         // 速度PID控制器
     
     float max_Torque = 0.8; // 最大扭矩 0-1
@@ -188,9 +188,12 @@ HXC_DMCtrl::HXC_DMCtrl(HXC_CAN*can,int MST_ID,int CAN_ID,pid_param speed_pid,pid
 
 //初始化,位置闭环,使能
 void HXC_DMCtrl::setup(bool is_enable){
-    if (is_enable) {
-        xTaskCreate(torque_current_task, "torque_current_task", torque_task_stack_size, this, torque_task_Priority, &torque_func_handle);
+    xTaskCreate(torque_current_task, "torque_current_task", torque_task_stack_size, this, torque_task_Priority, &torque_func_handle);
+    if (is_enable&&speed_func_handle==nullptr) {
+        xTaskCreate(speed_contral_task, "speed_contral_task", speed_task_stack_size, this, speed_task_Priority, &speed_func_handle);  
     }
+    read_register(Gr,&reduction_ratio);
+
 }
 
 
@@ -250,7 +253,7 @@ bool HXC_DMCtrl::get_is_load(){
 }
 // 获取当前速度（单位：RPM）
 float HXC_DMCtrl::get_now_speed(){
-    return get_vel_raw();
+    return get_vel_raw()-2047;
 }
 
 // 设置目标速度，单位：RPM，加速度控制
@@ -299,7 +302,7 @@ void HXC_DMCtrl::add_location_to_Torque_func(std::function<int(int64_t)> func){
 // 力矩控制任务的入口函数
 void HXC_DMCtrl::torque_current_task(void* p){
     HXC_DMCtrl* motor = (HXC_DMCtrl*)p;
-    auto xLastWakeTime = xTaskGetTickCount ();
+    auto xLastWakeTime = xTaskGetTickCount();
     while (1) {
         motor->sendMITpakage();
         //控制频率
@@ -337,18 +340,18 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         last_taget_control_speed = taget_control_speed;
 
         //由速度计算得到的目标位置
-        moto->speed_location_taget+=moto->is_online()*65535*taget_control_speed*delta_time/60;//位置误差,只有电机在线才计算累计位置
+        moto->speed_location_taget+=moto->is_online()*65535*moto->reduction_ratio*taget_control_speed*delta_time/60;//位置误差,只有电机在线才计算累计位置
 
         //更新上次更新时间
         last_update_speed_time=micros();
 
         //由速度误差和位置误差一同计算电流
         double err = 
-        /*速度环的误差=*/(taget_control_speed - moto->get_vel_raw())
+        /*速度环的误差=*/(taget_control_speed - moto->get_now_speed());
         +
         /*速度环位置误差比例系数=*/moto->speed_location_K/*这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿*/
         * 
-        /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->get_location())/8192;
+        /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->get_location())/65535;
 
         
         //计算控制力矩
@@ -357,7 +360,10 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         +
         /*PID控制器的计算力矩=*/moto->speed_pid_contraler.control(moto->is_online()*err);//电机在线才计算电流
         
-        moto->set_tff((Torque*4096)+2047);//设置力矩
+        //限幅
+        Torque=Torque<-1? -1:Torque>1?1:Torque;
+
+        moto->set_tff((Torque*2047)+2047);//设置力矩
         //控制频率
         xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
     }

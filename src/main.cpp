@@ -11,13 +11,12 @@
 #include "./DMMOTOR/HXC_DMCtrl.hpp"
 #include "HXC_TWAI.hpp"
 
-HXC_TWAI twai;
+HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 // M3508_P19 M3508(1);
 
-// // //达妙电机MIT控制类
+//达妙电机MIT控制类
 
-DMMotorMIT gm6220(&twai,0,1,0.0928*255,0.748*255);
-DMMotorMIT M3519(&twai,1,2,0.0928*255,0.748*255);
+HXC_DMCtrl M3519(&twai,0x10,2);
 
 
 
@@ -77,25 +76,16 @@ DMMotorMIT M3519(&twai,1,2,0.0928*255,0.748*255);
 
 
 void setup() {
-  // Serial.begin(115200);
 
-  // //遥控器
-  // ESPNOW::esp_now_setup();
-  // ESPNOW::add_callback_func("controller_data",test_callback);
+  twai.setup();
+  delay(100);
+  M3519.enable();
+  delay(100);
+  M3519.setup(true);
   
-  // pinMode(4,OUTPUT);
-  // pinMode(5,OUTPUT);
-  // digitalWrite(4,HIGH);
-  // digitalWrite(5,HIGH);
-  // can_init();
-  // delay(3000);
-  // gm6220.setup();
-  // M3508.set_max_curunt(16384);
-  // M3508.setup();
-
-
-  gm6220.set_pdes(32768);
-  M3519.set_pdes(32768);
+  Serial.begin(115200);
+  M3519.set_speed(400);
+  //M3519.set_pdes(32768);
   
 }
 void loop() {
@@ -103,7 +93,12 @@ void loop() {
 
   // M3508.set_speed(temp.value*800);
   // gm6220.set_pdes(32768+AngleConversion()*65535/25);
-  // delay(20);
+  // delay(20);s
+  Serial.print(M3519.get_location());
+  Serial.print(",");
+  Serial.println(M3519.get_now_speed());
+
+  delay(100);
 }
 
 
