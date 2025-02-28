@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-02-17 13:43:15
+ * @LastEditTime: 2025-02-28 22:02:24
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -130,16 +130,18 @@ class HXC_DMCtrl : protected DMMotorMIT{
     using DMMotor::get_motor_temperature;
 
 protected:
-    int64_t location_taget = 0;        // 目标位置
-    int64_t speed_location_taget = 0;  // 速度目标位置
+    int64_t location_taget = 0;        // 目标位置,回传的编码器值(16bit)作为单位 例如PMAX=12.566 那么旋转一圈为(2*PI/PMAX)*65535=32768
+    int64_t speed_location_taget = 0;  // 速度目标位置,这里为了最大化精度,以回传的位置数据作为单位,0-65535映射为0-PMAX
     pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
     PID_CONTROL location_pid_contraler;      // 位置PID控制器
-    pid_param default_speed_pid_parmater={0.01,0.02,0.00001,1,1};    // 默认速度PID参数
+    pid_param default_speed_pid_parmater={0.001,0.002,0.00001,1,1};    // 默认速度PID参数
     PID_CONTROL speed_pid_contraler;         // 速度PID控制器
     
     float max_Torque = 0.8; // 最大扭矩 0-1
     float taget_speed = 0;     // 目标速度
 
+    float Vmax = 50; // 回传速度最大值，用于回传速度映射 rad/s
+    float Pmax = 12.566; // 回传位置最大值，用于回传位置映射 rad
     float reduction_ratio = 1; // 减速比
     float acceleration = 0;    // 电机加速度（单位：rad/s²）
     int speed_location_K = 1000;   // 速度环位置误差系数
@@ -192,7 +194,11 @@ void HXC_DMCtrl::setup(bool is_enable){
     if (is_enable&&speed_func_handle==nullptr) {
         xTaskCreate(speed_contral_task, "speed_contral_task", speed_task_stack_size, this, speed_task_Priority, &speed_func_handle);  
     }
-    read_register(Gr,&reduction_ratio);
+
+    //获取三个关键参数
+    read_register(Gr,&reduction_ratio);//减速比
+    read_register(VMAX,&Vmax);//回传速度映射范围
+    read_register(PMAX,&Pmax);//回传位置映射范围
 
 }
 
@@ -253,7 +259,7 @@ bool HXC_DMCtrl::get_is_load(){
 }
 // 获取当前速度（单位：RPM）
 float HXC_DMCtrl::get_now_speed(){
-    return get_vel_raw()-2047;
+    return (2*Vmax*(get_vel_raw()-2047.f)/4096.f)*60.f/(2*PI);
 }
 
 // 设置目标速度，单位：RPM，加速度控制
@@ -340,8 +346,9 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         last_taget_control_speed = taget_control_speed;
 
         //由速度计算得到的目标位置
-        moto->speed_location_taget+=moto->is_online()*65535*moto->reduction_ratio*taget_control_speed*delta_time/60;//位置误差,只有电机在线才计算累计位置
-
+        moto->speed_location_taget+=moto->is_online()*65535
+        *((moto->get_now_speed()*2*PI/60.f)/(moto->Pmax))
+        *delta_time;//位置误差,只有电机在线才计算累计位置
         //更新上次更新时间
         last_update_speed_time=micros();
 

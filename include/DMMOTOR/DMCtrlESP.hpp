@@ -12,6 +12,7 @@
 #include "DMRegister.hpp"
 #include <math.h>
 
+#define DM_DEBUG 1
 // 默认控制任务栈大小
 constexpr uint32_t DM_default_ctrl_task_stack_size = 4096;
 // 默认控制任务优先级
@@ -69,8 +70,9 @@ public:
 
     // 获取电机的转子温度（单位：摄氏度）
     uint8_t get_motor_temperature();
-
+#ifndef DM_DEBUG
 protected:
+#endif
     //can消息回调函数
     void can_message_callback(HXC_CAN_message_t* can_message);
 
@@ -97,7 +99,10 @@ protected:
     
     HXC_CAN* can_bus;         // CAN总线对象
 
+#ifndef DM_DEBUG
 private:
+#endif
+
 
     int MST_ID;               // 电机反馈数据ID
     int CAN_ID;               // 电机控制数据ID

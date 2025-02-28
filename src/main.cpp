@@ -19,6 +19,8 @@ HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 HXC_DMCtrl M3519(&twai,0x10,2);
 
 
+HXC_DMCtrl M3510(&twai,0x1,0);
+
 
 // //二维向量,极坐标表示
 // struct dir_and_value
@@ -79,13 +81,13 @@ void setup() {
 
   twai.setup();
   delay(100);
-  M3519.enable();
+  M3510.enable();
   delay(100);
-  M3519.setup(true);
+  M3510.setup(true);
   
   Serial.begin(115200);
-  M3519.set_speed(400);
-  //M3519.set_pdes(32768);
+  //M3510.set_speed(60);
+  // M3519.set_pdes(32768);
   
 }
 void loop() {
@@ -93,11 +95,13 @@ void loop() {
 
   // M3508.set_speed(temp.value*800);
   // gm6220.set_pdes(32768+AngleConversion()*65535/25);
-  // delay(20);s
-  Serial.print(M3519.get_location());
+  // delay(20);
+  //float speed=0;
+  Serial.print(M3510.get_now_speed());
   Serial.print(",");
-  Serial.println(M3519.get_now_speed());
-
+  Serial.print(M3510.get_location());
+  Serial.print(",");
+  Serial.println(millis());
   delay(100);
 }
 
