@@ -83,7 +83,7 @@ void setup() {
   delay(100);
   M3510.enable();
   delay(100);
-  M3510.setup(true);
+  M3510.setup(false);
   
   Serial.begin(115200);
   //M3510.set_speed(60);
@@ -101,7 +101,10 @@ void loop() {
   Serial.print(",");
   Serial.print(M3510.get_location());
   Serial.print(",");
-  Serial.println(millis());
+  Serial.print(M3510.get_pos_deg());
+  Serial.print(",");
+  Serial.println(M3510.get_pos_rad());
+
   delay(100);
 }
 

@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-01-23 21:11:00
+ * @LastEditTime: 2025-03-03 22:39:57
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -47,6 +47,18 @@ public:
     // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
     bool is_online();
 
+    // 设置回传速度的映射最大值，即上位机的Vmax
+    void set_Vmax(float Vmax);
+    
+    // 获取回传速度的映射最大值
+    float get_Vmax();
+
+    // 设置回传位置的映射最大值，即上位机的Pmax
+    void set_Pmax(float Pmax);
+
+    // 获取回传位置的映射最大值
+    float get_Pmax();
+
     // 获取电机的多圈位置
     int64_t get_location();
 
@@ -56,9 +68,21 @@ public:
     // 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
     uint16_t get_pos_raw();
 
+    // 获取电机的角度,单位弧度
+    float get_pos_rad();
+
+    // 获取电机的角度，单位度
+    float get_pos_deg();
+
     // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
     uint16_t get_vel_raw();
 
+    // 获取电机的速度，单位rad/s
+    float get_vel_rad();
+
+    // 获取电机的速度，单位rpm
+    float get_vel_rpm();
+    
     // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
     uint16_t get_torque_raw();
 
@@ -70,6 +94,7 @@ public:
 
     // 获取电机的转子温度（单位：摄氏度）
     uint8_t get_motor_temperature();
+    
 #ifndef DM_DEBUG
 protected:
 #endif
@@ -100,7 +125,7 @@ protected:
     HXC_CAN* can_bus;         // CAN总线对象
 
 #ifndef DM_DEBUG
-private:
+protected:
 #endif
 
 
@@ -114,6 +139,10 @@ private:
     uint8_t T_Rotor;          // 电机转子温度
     uint8_t ERR;              // 电机错误代码
 
+
+    float Vmax = 50; // 回传速度最大值，用于回传速度映射 rad/s
+    float Pmax = 12.566; // 回传位置最大值，用于回传位置映射 rad
+    float reduction_ratio = 1; // 减速比
     uint32_t last_can_message_update_time = 0;   // 上次数据更新时间（单位：毫秒）
 
     int64_t location = 0;    // 多圈位置（单位：脉冲数）
@@ -121,6 +150,7 @@ private:
     uint8_t register_buffer_addr=0;//接收到的寄存器数据地址
     uint8_t register_buffer[4]={0,0,0,0};//寄存器数据缓冲区
     constexpr static const int READ_REGISTER_TIMEOUT=100;//读取寄存器超时时间 毫秒
+    bool is_first_data=true;//是否是第一个can回传数据
 };
 
 
@@ -197,6 +227,26 @@ bool DMMotor::is_online() {
     return true; // 电机在线
 }
 
+//设置回传速度的映射最大值，即上位机的Vmax
+void DMMotor::set_Vmax(float vmax) {
+    Vmax = vmax;
+}
+
+//获取回传速度的映射最大值
+float DMMotor::get_Vmax() {
+    return Vmax;
+}
+
+//设置回传位置的映射最大值，即上位机的Pmax
+void DMMotor::set_Pmax(float pmax) {
+    Pmax = pmax;
+}
+
+//获取回传位置的映射最大值
+float DMMotor::get_Pmax() {
+    return Pmax;
+}
+
 // 获取电机的多圈位置
 int64_t DMMotor::get_location() {
     return location;
@@ -212,10 +262,30 @@ uint16_t DMMotor::get_pos_raw() {
     return POS_raw;
 }
 
+// 获取电机的角度,单位弧度
+float DMMotor::get_pos_rad(){
+    return 2.f*POS_raw*Pmax/65535.f;
+};
+
+// 获取电机的角度，单位度
+float DMMotor::get_pos_deg(){
+    return 2.f*POS_raw*Pmax/65535.f*180.f/PI;
+};
+
 // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
 uint16_t DMMotor::get_vel_raw() {
     return VEL_raw;
 }
+
+// 获取电机的速度，单位rad/s
+float DMMotor::get_vel_rad(){
+    return 2.f*VEL_raw*Vmax/4095.f;
+};
+
+// 获取电机的速度，单位rpm
+float DMMotor::get_vel_rpm(){
+    return 2.f*VEL_raw*Vmax/4095.f*60.f/(2*PI);
+};
 
 // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
 uint16_t DMMotor::get_torque_raw() {
@@ -286,9 +356,13 @@ void DMMotor::update_date_callback(uint8_t* arr) {
             delta -= MAX_POSITION;
         }
     }
+    if(!is_first_data){//不将第一个数据作为多圈位置的初始值
+        // 更新电机的多圈位置
+        location += delta;
+    }else{
+        is_first_data=false;
+    }
 
-    // 更新电机的多圈位置
-    location += delta;
     POS_raw = POS;
     last_can_message_update_time = millis();  // 更新最后更新时间
 }

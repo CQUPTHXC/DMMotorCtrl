@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-02-28 22:02:24
+ * @LastEditTime: 2025-03-03 22:33:43
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -120,6 +120,14 @@ class HXC_DMCtrl : protected DMMotorMIT{
     using DMMotor::get_pos_raw;
     // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
     using DMMotor::get_vel_raw;
+    // 获取电机的角度,单位弧度
+    using DMMotor::get_pos_rad;
+    // 获取电机的角度，单位度
+    using DMMotor::get_pos_deg;
+    // 获取电机的速度，单位rad/s
+    using DMMotor::get_vel_rad;
+    // 获取电机的速度，单位rpm
+    using DMMotor::get_vel_rpm;
     // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
     using DMMotor::get_torque_raw;
     // 获取电机的错误代码
@@ -140,9 +148,8 @@ protected:
     float max_Torque = 0.8; // 最大扭矩 0-1
     float taget_speed = 0;     // 目标速度
 
-    float Vmax = 50; // 回传速度最大值，用于回传速度映射 rad/s
-    float Pmax = 12.566; // 回传位置最大值，用于回传位置映射 rad
-    float reduction_ratio = 1; // 减速比
+
+
     float acceleration = 0;    // 电机加速度（单位：rad/s²）
     int speed_location_K = 1000;   // 速度环位置误差系数
     int control_frequency = 1000;  // 控制频率（单位：Hz）
@@ -354,7 +361,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
 
         //由速度误差和位置误差一同计算电流
         double err = 
-        /*速度环的误差=*/(taget_control_speed - moto->get_now_speed());
+        /*速度环的误差=*/(taget_control_speed - moto->get_now_speed())
         +
         /*速度环位置误差比例系数=*/moto->speed_location_K/*这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿*/
         * 
