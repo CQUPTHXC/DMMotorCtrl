@@ -354,7 +354,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
 
         //由速度误差和位置误差一同计算电流
         double err = 
-        /*速度环的误差=*/(taget_control_speed - moto->get_now_speed());
+        /*速度环的误差=*/(taget_control_speed - moto->get_now_speed())
         +
         /*速度环位置误差比例系数=*/moto->speed_location_K/*这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿*/
         * 
