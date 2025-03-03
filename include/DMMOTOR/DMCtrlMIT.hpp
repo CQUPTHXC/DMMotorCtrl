@@ -3,7 +3,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机MIT控制
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-01-20 20:57:39
+ * @LastEditTime: 2025-03-03 22:43:55
  */
 #ifndef DM_Ctrl_MIT_HPP
 #define DM_Ctrl_MIT_HPP
@@ -78,7 +78,11 @@ public:
     using DMMotor::get_controller_temperature;
     // 获取电机的转子温度（单位：摄氏度）
     using DMMotor::get_motor_temperature;
+
+#ifndef DM_DEBUG
 protected:
+#endif
+
     // 发送MIT电机控制数据包
     void sendMITpakage();
 

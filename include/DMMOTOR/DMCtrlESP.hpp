@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-03 22:39:57
+ * @LastEditTime: 2025-03-03 22:47:24
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -12,13 +12,16 @@
 #include "DMRegister.hpp"
 #include <math.h>
 
-#define DM_DEBUG 1
+
+//#define DM_DEBUG 1    // 开启调试模式,将所有类成员改为public
+
+
 // 默认控制任务栈大小
 constexpr uint32_t DM_default_ctrl_task_stack_size = 4096;
 // 默认控制任务优先级
 constexpr uint8_t DM_default_ctrl_task_priority = 5;
 // 默认控制任务名
-constexpr char* DM_default_ctrl_task_name = "DMmotortask";
+constexpr const char* DM_default_ctrl_task_name = "DMmotortask";
 
 // 达妙电机基类
 class DMMotor {
@@ -98,6 +101,7 @@ public:
 #ifndef DM_DEBUG
 protected:
 #endif
+
     //can消息回调函数
     void can_message_callback(HXC_CAN_message_t* can_message);
 

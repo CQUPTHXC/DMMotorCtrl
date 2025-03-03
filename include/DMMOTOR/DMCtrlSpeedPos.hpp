@@ -3,7 +3,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机速度位置控制
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-03-03 22:34:14
+ * @LastEditTime: 2025-03-03 22:44:19
  */
 #ifndef DM_CTRLSPEEDPOS_HPP
 #define DM_CTRLSPEEDPOS_HPP
@@ -66,7 +66,11 @@ public:
     using DMMotor::get_controller_temperature;
     // 获取电机的转子温度（单位：摄氏度）
     using DMMotor::get_motor_temperature;
-protected:
+
+  #ifndef DM_DEBUG
+  protected:
+  #endif
+  
     // 发送位置速度模式控制数据包
     void sendSpeedPospakage();
 

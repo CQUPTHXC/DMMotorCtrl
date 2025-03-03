@@ -83,7 +83,7 @@ void setup() {
   delay(100);
   M3510.enable();
   delay(100);
-  M3510.setup(false);
+  M3510.setup(true);
   
   Serial.begin(115200);
   //M3510.set_speed(60);

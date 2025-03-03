@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-03 22:33:43
+ * @LastEditTime: 2025-03-03 22:43:26
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -137,7 +137,10 @@ class HXC_DMCtrl : protected DMMotorMIT{
     // 获取电机的转子温度（单位：摄氏度）
     using DMMotor::get_motor_temperature;
 
+#ifndef DM_DEBUG
 protected:
+#endif
+
     int64_t location_taget = 0;        // 目标位置,回传的编码器值(16bit)作为单位 例如PMAX=12.566 那么旋转一圈为(2*PI/PMAX)*65535=32768
     int64_t speed_location_taget = 0;  // 速度目标位置,这里为了最大化精度,以回传的位置数据作为单位,0-65535映射为0-PMAX
     pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
