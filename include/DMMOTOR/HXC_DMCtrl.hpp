@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-04 13:37:05
+ * @LastEditTime: 2025-03-04 20:07:35
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -142,7 +142,7 @@ protected:
     int64_t speed_location_taget = 0;  // 速度目标位置,这里为了最大化精度,以回传的位置数据作为单位,0-65535映射为0-PMAX
     pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
     PID_CONTROL location_pid_contraler;      // 位置PID控制器
-    pid_param default_speed_pid_parmater={0.001,0.002,0.00001,1,1};    // 默认速度PID参数
+    pid_param default_speed_pid_parmater={0.001,0.002,0,1,1};    // 默认速度PID参数
     PID_CONTROL speed_pid_contraler;         // 速度PID控制器
     
     float max_Torque = 0.8; // 最大扭矩 0-1

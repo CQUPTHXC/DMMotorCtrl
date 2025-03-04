@@ -16,10 +16,10 @@ HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 
 //达妙电机MIT控制类
 
-HXC_DMCtrl M3519(&twai,0x10,2);
+HXC_DMCtrl GM6220(&twai,0x0,1);
 
 
-HXC_DMCtrl M3510(&twai,0x1,0);
+//HXC_DMCtrl M3510(&twai,0x1,0);
 
 
 // //二维向量,极坐标表示
@@ -81,12 +81,12 @@ void setup() {
 
   twai.setup();
   delay(100);
-  M3510.enable();
+  GM6220.enable();
   delay(100);
-  M3510.setup(true);
+  GM6220.setup(false);
   
   Serial.begin(115200);
-  M3510.set_speed(60);
+  GM6220.set_speed(60);
   // M3519.set_pdes(32768);
   
 }
@@ -99,13 +99,13 @@ void loop() {
   //float speed=0;
   //Serial.println(M3510.speed_location_taget/65535.f);
 
-  Serial.print(M3510.get_vel_rpm());
+  Serial.print(GM6220.get_vel_rpm());
   Serial.print(",");
-  Serial.print(M3510.get_location());
+  Serial.print(GM6220.get_location());
   Serial.print(",");
-  Serial.print(M3510.get_pos_deg());
+  Serial.print(GM6220.get_pos_deg());
   Serial.print(",");
-  Serial.println(M3510.get_pos_rad());
+  Serial.println(GM6220.get_pos_rad());
 
   delay(100);
 }
