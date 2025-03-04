@@ -86,7 +86,7 @@ void setup() {
   M3510.setup(true);
   
   Serial.begin(115200);
-  //M3510.set_speed(60);
+  M3510.set_speed(60);
   // M3519.set_pdes(32768);
   
 }
@@ -97,7 +97,9 @@ void loop() {
   // gm6220.set_pdes(32768+AngleConversion()*65535/25);
   // delay(20);
   //float speed=0;
-  Serial.print(M3510.get_now_speed());
+  //Serial.println(M3510.speed_location_taget/65535.f);
+
+  Serial.print(M3510.get_vel_rpm());
   Serial.print(",");
   Serial.print(M3510.get_location());
   Serial.print(",");

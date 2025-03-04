@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-03 22:47:24
+ * @LastEditTime: 2025-03-04 13:34:59
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -13,7 +13,7 @@
 #include <math.h>
 
 
-//#define DM_DEBUG 1    // 开启调试模式,将所有类成员改为public
+#define DM_DEBUG 1    // 开启调试模式,将所有类成员改为public
 
 
 // 默认控制任务栈大小
@@ -268,12 +268,12 @@ uint16_t DMMotor::get_pos_raw() {
 
 // 获取电机的角度,单位弧度
 float DMMotor::get_pos_rad(){
-    return 2.f*POS_raw*Pmax/65535.f;
+    return 2.f*(POS_raw-32767)*Pmax/65535.f;
 };
 
 // 获取电机的角度，单位度
 float DMMotor::get_pos_deg(){
-    return 2.f*POS_raw*Pmax/65535.f*180.f/PI;
+    return 2.f*(POS_raw-32767)*Pmax/65535.f*180.f/PI;
 };
 
 // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
@@ -283,12 +283,12 @@ uint16_t DMMotor::get_vel_raw() {
 
 // 获取电机的速度，单位rad/s
 float DMMotor::get_vel_rad(){
-    return 2.f*VEL_raw*Vmax/4095.f;
+    return 2.f*(VEL_raw-2047.f)*Vmax/4095.f;
 };
 
 // 获取电机的速度，单位rpm
 float DMMotor::get_vel_rpm(){
-    return 2.f*VEL_raw*Vmax/4095.f*60.f/(2*PI);
+    return 2.f*(VEL_raw-2047.f)*Vmax/4095.f*60.f/(2*PI);
 };
 
 // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）

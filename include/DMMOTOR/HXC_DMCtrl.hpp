@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-03 22:43:26
+ * @LastEditTime: 2025-03-04 13:33:08
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -283,7 +283,7 @@ void HXC_DMCtrl::set_speed(float speed, float acce){
 
 // 获取转子目标速度
 float HXC_DMCtrl::get_taget_speed(){
-    return speed_location_taget;
+    return taget_speed;
 }
 // 设置电机加速度，单位：RPM/s
 void HXC_DMCtrl::set_acceleration(float acce){
@@ -357,7 +357,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
 
         //由速度计算得到的目标位置
         moto->speed_location_taget+=moto->is_online()*65535
-        *((moto->get_now_speed()*2*PI/60.f)/(moto->Pmax))
+        *((taget_control_speed*2*PI/60.f)/(2*moto->Pmax))
         *delta_time;//位置误差,只有电机在线才计算累计位置
         //更新上次更新时间
         last_update_speed_time=micros();
