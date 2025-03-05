@@ -4,13 +4,14 @@
  * @Author: qingmeijiupiao
  * @Date: 2024-10-17 22:00:39
  */
-#include <Arduino.h>
 
-#include "CONTROLLER.hpp"
-#include "DJIMotorCtrlESP.hpp"
+
+
+//#include "DJIMotorCtrlESP.hpp"
 #include "./DMMOTOR/HXC_DMCtrl.hpp"
 #include "HXC_TWAI.hpp"
-
+#include "CONTROLLER.hpp"
+#include <Arduino.h>
 HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 // M3508_P19 M3508(1);
 

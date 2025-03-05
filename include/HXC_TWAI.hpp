@@ -11,7 +11,7 @@
 #include "HXC_CAN.hpp"
 #include "driver/twai.h" //can驱动，esp32sdk自带
 #include "freertos/FreeRTOS.h"
-#include <cstring>
+#include <cstring>//use memcpy memcmp
 // TWAI封装类
 class HXC_TWAI : public HXC_CAN {
 public:

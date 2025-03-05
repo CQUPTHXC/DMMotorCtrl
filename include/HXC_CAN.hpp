@@ -9,6 +9,13 @@
 #ifndef HXC_CAN_BASE_HPP
 #define HXC_CAN_BASE_HPP
 #include <map>
+#include <functional>
+#include "esp_err.h"//esp std err lib
+
+//这里重复定义了esp_err.h的定义，方便移植其他平台
+typedef int esp_err_t;
+#define ESP_OK          0       /*!< esp_err_t value indicating success (no error) */
+#define ESP_FAIL        -1      /*!< Generi esp_err_t code indicating failure */
 
 /*↓↓↓本文件的声明↓↓↓*/
 

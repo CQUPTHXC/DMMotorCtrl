@@ -8,7 +8,8 @@
 
 #ifndef PID_CONTROL_HPP
 #define PID_CONTROL_HPP
-#include <Arduino.h>
+#include <cstdlib>// use abs()
+#include <esp32-hal.h>//use micros()
 // PID参数结构体
 struct pid_param
 {
@@ -155,7 +156,7 @@ public:
         return control(error);
     }
 
-    // private:
+    private:
     double Kp;         // 比例系数
     double Ki;         // 积分系数
     double Kd;         // 微分系数

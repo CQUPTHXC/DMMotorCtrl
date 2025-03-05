@@ -6,12 +6,14 @@
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
-#include <Arduino.h>
 #include "HXC_CAN.hpp"
-#include <map>
 #include "DMRegister.hpp"
+#include "freertos/FreeRTOS.h"
+#include <string.h>//use memcpy memcmp
+#include <esp32-hal.h>//use millis()
 #include <math.h>
 
+#define PI 3.1415926535897932384626433832795
 
 #define DM_DEBUG 1    // 开启调试模式,将所有类成员改为public
 

@@ -8,6 +8,7 @@
 #define HXC_DMCtrlESP_HPP
 #include "DMCtrlMIT.hpp"
 #include "PID_CONTROL.hpp"
+
 class HXC_DMCtrl : protected DMMotorMIT{
     public:
     //禁止电机拷贝传递
@@ -94,9 +95,10 @@ class HXC_DMCtrl : protected DMMotorMIT{
 
     /*基类接口*/
 
+    //设置控制频率，也影响CAN接发消息的的频率
+    using DMMotorMIT::setDataRate;
     // 使能电机 对应0xFC命令
     using DMMotor::enable;
-    
     // 失能电机 对应0xFD命令
     using DMMotor::disable;
     // 保存电机位置零点
@@ -325,9 +327,9 @@ void HXC_DMCtrl::speed_contral_task(void* n){
     //上次更新时间
     int last_update_speed_time=micros();
     moto->speed_pid_contraler.reset();
-    //在unload过后出现扰动，再次load之后不会回到扰动前的位置
+    //在unload过后出mu现扰动，再次load之后不会回到扰动前的位置
     moto->speed_location_taget = moto->get_location();
-
+    //目标控制速度，和目标速度的区别是受加速度限制
     float taget_control_speed = moto->taget_speed;
     float last_taget_control_speed = moto->taget_speed;
     auto xLastWakeTime = xTaskGetTickCount ();
@@ -338,7 +340,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
             taget_control_speed = moto->taget_speed;
         }else{
             //如果启用了加速度控制
-            if(abs(taget_control_speed-last_taget_control_speed)>delta_time*moto->acceleration){
+            if(std::abs(taget_control_speed-last_taget_control_speed)>delta_time*moto->acceleration){
                 //根据加速度控制速度
                 taget_control_speed = last_taget_control_speed+(taget_control_speed-last_taget_control_speed)>0?delta_time*moto->acceleration:-delta_time*moto->acceleration;
             }else{
@@ -364,7 +366,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->get_location())/65535;
 
         
-        //计算控制力矩
+        //计算控制力矩 [-1,1]
         float Torque = 
         /*位置映射的力矩=*/moto->location_to_Torque_func(moto->get_location())
         +
@@ -373,7 +375,8 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         //限幅
         Torque=Torque<-1? -1:Torque>1?1:Torque;
 
-        moto->set_tff((Torque*2047)+2047);//设置力矩
+        moto->set_tff((Torque*2047)+2047);//设置力矩,[－1，1]映射到[0,4095]
+        
         //控制频率
         xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
     }
@@ -385,7 +388,7 @@ void HXC_DMCtrl::location_contral_task(void* n){
     float speed=0;
     auto xLastWakeTime = xTaskGetTickCount ();
     while (1){
-        //位置闭环控制,由位置误差决定速度,再由速度误差决定电流
+        //位置闭环控制,由位置误差决定速度,再由速度误差决定力矩
         speed = moto->location_pid_contraler.control(moto->location_taget - moto->get_location());
         moto->taget_speed = speed;
         //控制频率
