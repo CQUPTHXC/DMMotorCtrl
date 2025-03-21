@@ -10,6 +10,7 @@
 #define PID_CONTROL_HPP
 #include <cstdlib>// use abs()
 #include <esp32-hal.h>//use micros()
+#include <Arduino.h>
 // PID参数结构体
 struct pid_param
 {
@@ -155,7 +156,10 @@ public:
     {
         return control(error);
     }
-
+    void printPID()
+    {
+        Serial.printf("%f, %f, %f\n", Kp, Ki, Kd);
+    }
     private:
     double Kp;         // 比例系数
     double Ki;         // 积分系数

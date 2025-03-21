@@ -91,6 +91,9 @@ public:
     // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
     uint16_t get_torque_raw();
 
+    // 获取目标位置
+ 
+
     // 获取电机的错误代码
     uint8_t get_error();
 
@@ -297,6 +300,9 @@ float DMMotor::get_vel_rpm(){
 uint16_t DMMotor::get_torque_raw() {
     return TORQUE_raw;
 }
+
+// 获取目标位置
+
 
 // 获取电机的错误代码
 // 对应故障类型为：
