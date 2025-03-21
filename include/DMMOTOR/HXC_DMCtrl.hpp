@@ -149,7 +149,6 @@ protected:
     // pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
     pid_param default_location_pid_parmater={0.047,0.092,0,50,500};  // 修改后的参数， 25.3.21
 
-    
     PID_CONTROL location_pid_contraler;      // 位置PID控制器
     // pid_param default_speed_pid_parmater={0.001,0.002,0,1,1};    // 默认速度PID参数
     pid_param default_speed_pid_parmater={0.001,0.0006,0,1,1};    // 修改后的参数， 25.3.21
