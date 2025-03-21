@@ -99,6 +99,7 @@ void setup() {
   delay(100);
   GM6220.setup(true);
   
+  
   Serial.begin(115200);
   // GM6220.set_speed(60);
 
