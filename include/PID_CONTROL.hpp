@@ -2,13 +2,26 @@
  * @Description: PID控制器
  * @Author: qingmeijiupiao
  * @Date: 2024-04-13 21:00:21
- * @LastEditTime: 2024-10-27 20:02:21
+ * @LastEditTime: 2025-03-25 18:57:30
  * @LastEditors: qingmeijiupiao
  */
 
 #ifndef PID_CONTROL_HPP
 #define PID_CONTROL_HPP
-#include <Arduino.h>
+
+#include <cmath>
+
+#include "esp32-hal.h" //使用micros()
+
+
+
+// 获取当前时间,单位微秒,移植时按需修改
+static inline int64_t now_time_us() { 
+    return micros(); 
+}
+
+
+
 // PID参数结构体
 struct pid_param
 {
@@ -65,13 +78,13 @@ public:
         prevError = 0.0;
         last_contrl_time = 0;
     }
-    double control(double error)
+    float control(float error)
     {
-        if (abs(error) < _dead_zone)
+        if (std::abs(error) < _dead_zone)
         {
             error = 0;
         }
-        double time_p = micros() - last_contrl_time;
+        float time_p = now_time_us() - last_contrl_time;
         if (last_contrl_time == 0 || time_p < 0)
         {
             time_p = 1;
@@ -79,29 +92,29 @@ public:
         // 计算时间,确保ki，kd在不同控制频率的一致性
         time_p = 0.000001*time_p;
         // 计算比例项
-        double proportional = Kp * error;
+        float proportional = Kp * error;
 
 
         
         integral += (time_p * Ki * error);
         // 积分限幅
-        if(abs(integral) > _max_value){
+        if(std::abs(integral) > _max_value){
             integral= integral>0?_max_value:-_max_value;
         }
         // 计算积分项
         //当Kp大于限幅时，积分项不增加
-        if(abs(proportional) > _max_value){
+        if(std::abs(proportional) > _max_value){
             integral=0;
         }
-        double derivative = 0;
+        float derivative = 0;
         // 计算微分项
         if (time_p != 0)
             derivative = Kd * (error - prevError) / time_p;
         prevError = error;
         // 计算总的控制输出
-        double output = proportional + integral + derivative;
-        last_contrl_time = micros();
-        if (abs(output) > _max_value)
+        float output = proportional + integral + derivative;
+        last_contrl_time = now_time_us();
+        if (std::abs(output) > _max_value)
         {
             return output > 0 ? _max_value : -1 * _max_value;
         }
@@ -146,25 +159,17 @@ public:
     {
         return pid_param(Kp, Ki, Kd, _dead_zone, _max_value);
     }
-    double operator>>(double error)
-    {
-        return control(error);
-    }
-    double operator<<(double error)
-    {
-        return control(error);
-    }
 
-    // private:
-    double Kp;         // 比例系数
-    double Ki;         // 积分系数
-    double Kd;         // 微分系数
-    double _max_value; // 输出限幅
-    double _dead_zone; // 死区
-    double setpoint;   // 设定值
-    double integral;   // 积分项
-    double prevError;  // 上一次误差
-    double last_contrl_time = 0;
+    private:
+    float Kp;         // 比例系数
+    float Ki;         // 积分系数
+    float Kd;         // 微分系数
+    float _max_value; // 输出限幅
+    float _dead_zone; // 死区
+    float setpoint;   // 设定值
+    float integral;   // 积分项
+    float prevError;  // 上一次误差
+    float last_contrl_time = 0; // 上一次控制时间
 };
 
 #endif

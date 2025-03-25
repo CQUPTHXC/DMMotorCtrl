@@ -2,24 +2,20 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-04 20:07:35
+ * @LastEditTime: 2025-03-25 19:29:46
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
 #include "DMCtrlMIT.hpp"
-#include "PID_CONTROL.hpp"
+#include "PID_CONTROL.hpp" //PID控制器和now_time_us()
+
 class HXC_DMCtrl : protected DMMotorMIT{
     public:
-    //禁止电机拷贝传递
-    HXC_DMCtrl(const HXC_DMCtrl&) = delete;
-    HXC_DMCtrl& operator=(const HXC_DMCtrl&) = delete;
-
     
     /**
      * @description: 
      * @return {*}
      * @Author: qingmeijiupiao
-     * @LastEditTime: Do not edit
      * @param {HXC_CAN*} can
      * @param {int} MST_ID 
      * @param {int} CAN_ID
@@ -86,8 +82,8 @@ class HXC_DMCtrl : protected DMMotorMIT{
      * @description: 当电机的输出电流需要根据位置进行映射的时候，可以传入位置到电流映射函数的指针
      * 例如电机做摇臂控制电机时，电流需要做三角函数映射，那么可以传入经过三角函数的位置到电流映射函数的指针
      * @return {*}
-     * @Author: qingmeijiupiao
-     * @Date: 2024-04-23 14:00:29
+     * @author: qingmeijiupiao
+     * @date: 2024-04-23 14:00:29
      * @param 返回值为力矩 -1~1，输入为位置(int64_t)的映射函数或者lambda
      */
     void add_location_to_Torque_func(std::function<int(int64_t)> func);
@@ -107,6 +103,8 @@ class HXC_DMCtrl : protected DMMotorMIT{
     using DMMotor::get_MST_ID;
     // 获取电机的CAN ID
     using DMMotor::get_CAN_ID;
+    //设置参数映射最大值
+    using DMMotor::set_param_max;
     // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
     using DMMotor::is_online;
     // 获取电机的多圈位置
@@ -202,10 +200,11 @@ void HXC_DMCtrl::setup(bool is_enable){
         xTaskCreate(speed_contral_task, "speed_contral_task", speed_task_stack_size, this, speed_task_Priority, &speed_func_handle);  
     }
 
-    //获取三个关键参数
+    //获取四个关键参数
     read_register(Gr,&reduction_ratio);//减速比
     read_register(VMAX,&Vmax);//回传速度映射范围
     read_register(PMAX,&Pmax);//回传位置映射范围
+    read_register(TMAX,&Tmax);//回传扭矩映射范围
 
 }
 
@@ -323,7 +322,7 @@ void HXC_DMCtrl::torque_ctrl_task(void* p){
 void HXC_DMCtrl::speed_contral_task(void* n){
     HXC_DMCtrl* moto = (HXC_DMCtrl*) n;
     //上次更新时间
-    int last_update_speed_time=micros();
+    int last_update_speed_time=now_time_us();
     moto->speed_pid_contraler.reset();
     //在unload过后出现扰动，再次load之后不会回到扰动前的位置
     moto->speed_location_taget = moto->get_location();
@@ -332,7 +331,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
     float last_taget_control_speed = moto->taget_speed;
     auto xLastWakeTime = xTaskGetTickCount ();
     while (1){
-        float delta_time=1e-6*(micros()-last_update_speed_time); 
+        float delta_time=1e-6*(now_time_us()-last_update_speed_time); 
         
         if(moto->acceleration==0){
             taget_control_speed = moto->taget_speed;
@@ -353,7 +352,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         *((taget_control_speed*2*PI/60.f)/(2*moto->Pmax))
         *delta_time;//位置误差,只有电机在线才计算累计位置
         //更新上次更新时间
-        last_update_speed_time=micros();
+        last_update_speed_time=now_time_us();
 
         //由速度误差和位置误差一同计算电流
         double err = 

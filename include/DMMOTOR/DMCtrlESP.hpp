@@ -2,16 +2,15 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-04 20:05:16
+ * @LastEditTime: 2025-03-25 19:43:55
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
-#include <Arduino.h>
 #include "HXC_CAN.hpp"
 #include <map>
 #include "DMRegister.hpp"
 #include <math.h>
-
+#include <FreeRTOS.h>
 
 #define DM_DEBUG 1    // 开启调试模式,将所有类成员改为public
 
@@ -26,6 +25,12 @@ constexpr const char* DM_default_ctrl_task_name = "DMmotortask";
 // 达妙电机基类
 class DMMotor {
 public:
+    //禁止电机拷贝传递
+    DMMotor(const DMMotor&) = delete;
+    DMMotor& operator=(const DMMotor&) = delete;
+
+    
+
     // 构造函数，初始化电机对象，注册CAN接收回调
     DMMotor(HXC_CAN* can, int MST_ID, int CAN_ID);
 
@@ -49,6 +54,15 @@ public:
 
     // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
     bool is_online();
+
+    // 设置参数映射最大值
+    void set_param_max(float T_max, float V_max, float P_max);
+
+    // 设置扭矩的映射最大值
+    void set_Tmax(float Tmax);
+
+    // 获取扭矩的映射最大值
+    float get_Tmax();
 
     // 设置回传速度的映射最大值，即上位机的Vmax
     void set_Vmax(float Vmax);
@@ -98,9 +112,6 @@ public:
     // 获取电机的转子温度（单位：摄氏度）
     uint8_t get_motor_temperature();
     
-#ifndef DM_DEBUG
-protected:
-#endif
 
     //can消息回调函数
     void can_message_callback(HXC_CAN_message_t* can_message);
@@ -115,16 +126,16 @@ protected:
      * @param {DMRegisterAddress} addr 寄存器地址
      * @param {void*} value 读取到的数据，根据addr的类型有float或uint32_t两种类型
      */
-    esp_err_t read_register(DMRegisterAddress addr,void* value);
+    hxc_err_t read_register(DMRegisterAddress addr,void* value);
 
     // 写入电机的寄存器数据（支持写入32位值）
-    esp_err_t write_register(DMRegisterAddress addr, uint32_t value);
+    hxc_err_t write_register(DMRegisterAddress addr, uint32_t value);
 
     // 重载写寄存器函数，支持写入浮点型数据
-    esp_err_t write_register(DMRegisterAddress addr, float value);
+    hxc_err_t write_register(DMRegisterAddress addr, float value);
 
     //写寄存器数据立即生效，但无法进行存储，掉电后丢失，需要发送存储参数的命令，将修改的参数全部写入片内
-    esp_err_t save_register(DMRegisterAddress addr);
+    hxc_err_t save_register(DMRegisterAddress addr);
     
     HXC_CAN* can_bus;         // CAN总线对象
 
@@ -136,16 +147,17 @@ protected:
     int MST_ID;               // 电机反馈数据ID
     int CAN_ID;               // 电机控制数据ID
 
-    uint16_t POS_raw;         // 电机位置的原始数据
-    uint16_t VEL_raw;         // 电机速度的原始数据
-    uint16_t TORQUE_raw;      // 电机扭矩的原始数据
-    uint8_t MOS_temp;         // 电机控制器MOS管温度
-    uint8_t T_Rotor;          // 电机转子温度
+    uint16_t POS_raw;         // 电机位置的原始数据 16位 [0-65535]
+    uint16_t VEL_raw;         // 电机速度的原始数据 12位 [0-4095]
+    uint16_t TORQUE_raw;      // 电机扭矩的原始数据 12位 [0-4095]
+    uint8_t MOS_temp;         // 电机控制器MOS管温度 单位：摄氏度
+    uint8_t T_Rotor;          // 电机转子温度  单位：摄氏度
     uint8_t ERR;              // 电机错误代码
 
 
-    float Vmax = 50; // 回传速度最大值，用于回传速度映射 rad/s
+    float Vmax = 200; // 回传速度最大值，用于回传速度映射 rad/s
     float Pmax = 12.566; // 回传位置最大值，用于回传位置映射 rad
+    float Tmax = 1; // 回传扭矩最大值，用于回传扭矩映射 Nm 暂时在控制中没有用到
     float reduction_ratio = 1; // 减速比
     uint32_t last_can_message_update_time = 0;   // 上次数据更新时间（单位：毫秒）
 
@@ -229,6 +241,32 @@ bool DMMotor::is_online() {
         return false; // 20ms内未更新数据，认为电机掉线
     }
     return true; // 电机在线
+}
+
+/**
+ * @brief : 设置参数映射最大值
+ * @return  {*}
+ * @Author : qingmeijiupiao
+ * @param {float} T_max 回传扭矩的映射最大值，即上位机的Tmax
+ * @param {float} V_max 回传速度的映射最大值，即上位机的Vmax
+ * @param {float} P_max 回传位置的映射最大值，即上位机的Pmax
+ */
+void DMMotor::set_param_max(float T_max, float V_max, float P_max){
+    if(T_max>0) Tmax=T_max;
+    if(V_max>0) Vmax=V_max;
+    if(P_max>0) Pmax=P_max;
+    
+};
+
+
+// 设置回传扭矩的映射最大值，即上位机的Tmax
+void DMMotor::set_Tmax(float tmax) {
+    Tmax = tmax;
+}
+
+// 获取回传扭矩的映射最大值
+float DMMotor::get_Tmax() {
+    return Tmax;
 }
 
 //设置回传速度的映射最大值，即上位机的Vmax
@@ -372,7 +410,7 @@ void DMMotor::update_date_callback(uint8_t* arr) {
 }
 
 // 读取电机寄存器数据
-esp_err_t DMMotor::read_register(DMRegisterAddress addr,void* value) {
+hxc_err_t DMMotor::read_register(DMRegisterAddress addr,void* value) {
     HXC_CAN_message_t can_message;
     can_message.identifier = 0x7FF;
     can_message.data_length_code = 8;
@@ -383,7 +421,7 @@ esp_err_t DMMotor::read_register(DMRegisterAddress addr,void* value) {
     can_message.data[2] = 0x33;
     can_message.data[3] = addr;
     esp_err_t status = can_bus->send(&can_message); // 发送读取寄存器的CAN命令
-    if(status!=ESP_OK){//发送失败
+    if(status!=HXC_OK){//发送失败
         return status;
     }
     can_register_flag=true;//等待寄存器数据
@@ -398,17 +436,17 @@ esp_err_t DMMotor::read_register(DMRegisterAddress addr,void* value) {
             register_buffer_addr=0xFF;
             memset(register_buffer,0,4);
             //返回
-            return ESP_OK;
+            return HXC_OK;
         }
         delay(1);
     }
     can_register_flag=false;
     //超时
-    return ESP_ERR_TIMEOUT;
+    return HXC_ERR_TIMEOUT;
 }
 
 // 写入电机寄存器数据（支持写入32位值）
-esp_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
+hxc_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
     HXC_CAN_message_t can_message;
     can_message.identifier = 0x7FF;
     can_message.data_length_code = 8;
@@ -420,7 +458,7 @@ esp_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
     can_message.data[3] = addr;
     memcpy(can_message.data + 4, &value, 4);  // 将值写入数据中
     esp_err_t status = can_bus->send(&can_message); // 发送写入寄存器的CAN命令
-    if(status!=ESP_OK){//发送失败
+    if(status!=HXC_OK){//发送失败
         return status;
     }
     can_register_flag=true;//等待寄存器数据
@@ -437,9 +475,9 @@ esp_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
             memset(register_buffer,0,4);
             //返回
             if(temp==0){
-                return ESP_OK;
+                return HXC_OK;
             }else{
-                return ESP_FAIL;
+                return HXC_FAIL;
             }
             
         }
@@ -447,11 +485,11 @@ esp_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
     }
     can_register_flag=false;
     //超时
-    return ESP_ERR_TIMEOUT;
+    return HXC_ERR_TIMEOUT;
 }
 
 // 重载写寄存器函数，支持写入浮点型数据
-esp_err_t DMMotor::write_register(DMRegisterAddress addr, float value) {
+hxc_err_t DMMotor::write_register(DMRegisterAddress addr, float value) {
     HXC_CAN_message_t can_message;
     can_message.identifier = 0x7FF;
     can_message.data_length_code = 8;
@@ -480,9 +518,9 @@ esp_err_t DMMotor::write_register(DMRegisterAddress addr, float value) {
             memset(register_buffer,0,4);
             //返回
             if(temp==0){
-                return ESP_OK;
+                return HXC_OK;
             }else{
-                return ESP_FAIL;
+                return HXC_FAIL;
             }
             
         }
@@ -490,10 +528,10 @@ esp_err_t DMMotor::write_register(DMRegisterAddress addr, float value) {
     }
     can_register_flag=false;
     //超时
-    return ESP_ERR_TIMEOUT;
+    return HXC_ERR_TIMEOUT;
 }
 
-esp_err_t DMMotor::save_register(DMRegisterAddress addr){
+hxc_err_t DMMotor::save_register(DMRegisterAddress addr){
     HXC_CAN_message_t can_message;
     can_message.identifier = 0x7FF;
     can_message.data_length_code = 8;

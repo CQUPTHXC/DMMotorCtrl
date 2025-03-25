@@ -1,9 +1,9 @@
 /*
- * @version: 2.0.0
+ * @version: 2.0.2
  * @Description: 用于控制大疆电机
  * @Author: qingmeijiupiao
  * @Date: 2024-04-13 21:00:21
- * @LastEditTime: 2024-12-30 15:03:02
+ * @LastEditTime: 2025-03-16 20:07:48
  * @LastEditors: qingmeijiupiao
  * @rely:PID_CONTROL.hpp,ESP_CAN.hpp
  */
@@ -363,30 +363,24 @@ void DJI_MOTOR::set_speed_pid(pid_param speed_pid){
 };
 
 void DJI_MOTOR::set_location_pid(float _location_Kp, float _location_Ki, float _location_Kd, float __dead_zone, float _max_speed){
-    location_pid_contraler.Kp=_location_Kp;
-    location_pid_contraler.Ki=_location_Ki;
-    location_pid_contraler.Kd=_location_Kd;
-    location_pid_contraler._dead_zone=__dead_zone;
-    location_pid_contraler._max_value=_max_speed;
+    location_pid_contraler.setPram(_location_Kp, _location_Ki, _location_Kd, __dead_zone, _max_speed);
 }
 
 void DJI_MOTOR::set_speed_pid(float _speed_Kp, float _speed_Ki, float _speed_Kd, float __dead_zone, float _max_curunt){
-    speed_pid_contraler.Kp=_speed_Kp;
-    speed_pid_contraler.Ki=_speed_Ki;
-    speed_pid_contraler.Kd=_speed_Kd;
-    speed_pid_contraler._dead_zone=__dead_zone;
-    max_curunt=_max_curunt;
     if(max_curunt>16384||max_curunt<=0){//最大电流限制
         max_curunt=16384;
     }
-    speed_pid_contraler._max_value=_max_curunt;
+    speed_pid_contraler.setPram(_speed_Kp, _speed_Ki, _speed_Kd, __dead_zone, _max_curunt);
+    max_curunt=_max_curunt;
     speed_pid_contraler.reset();
     location_pid_contraler.reset();
 }
 
 void DJI_MOTOR::set_max_curunt(float _max_curunt){
-    if(_max_curunt>16384||max_curunt<=0)
+    if(_max_curunt>16384||max_curunt<=0){
         _max_curunt=16384;
+    }
+    speed_pid_contraler.setPram(0, 0, 0, 0, _max_curunt);
     max_curunt=_max_curunt;
 }
 
@@ -515,6 +509,7 @@ void DJI_MOTOR::speed_contral_task(void* n){
 
     float taget_control_speed = moto->taget_speed;
     float last_taget_control_speed = moto->taget_speed;
+    auto xLastWakeTime = xTaskGetTickCount();
     while (1){
         float delta_time=1e-6*(micros()-last_update_speed_time); 
         
@@ -555,7 +550,8 @@ void DJI_MOTOR::speed_contral_task(void* n){
         /*PID控制器的计算电流=*/moto->speed_pid_contraler.control(moto->can_data.is_online()*err);//电机在线才计算电流
 
         moto->can_data.set_current = cru;//设置电
-        delay(1000/moto->control_frequency);
+        // 根据数据频率设置延时 
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
     }
 }
 //位置闭环控制任务
@@ -563,11 +559,13 @@ void DJI_MOTOR::location_contral_task(void* n){
     DJI_MOTOR* moto = (DJI_MOTOR*) n;
     moto->location_pid_contraler.reset();//重置位置闭环控制器
     float speed=0;
+    auto xLastWakeTime = xTaskGetTickCount();
     while (1){
         //位置闭环控制,由位置误差决定速度,再由速度误差决定电流
         speed = moto->location_pid_contraler.control(moto->location_taget - moto->can_data.location);
         moto->taget_speed = speed;
-        delay(1000/moto->control_frequency);
+        // 根据数据频率设置延时 
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
     }
 };
 
@@ -578,6 +576,8 @@ void DJI_MOTOR::update_current_task(void* p){
 
     //获取can总线对应的电机
     can_bus_to_motor& motors = can_bus_map[can_bus];
+
+    auto xLastWakeTime = xTaskGetTickCount();
     while(1){
         int16_t current_data[8]={0,0,0,0,0,0,0,0};
         int16_t GM6020_current_data[7]={0,0,0,0,0,0,0};
@@ -667,8 +667,9 @@ void DJI_MOTOR::update_current_task(void* p){
             tx_msg.data[7] = 0;
             can_bus->send(&tx_msg);
         }
-        //延时
-        delay(1000/motors.send_frequency);
+
+        // 根据数据频率设置延时 
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motors.send_frequency);
     }
 }
 

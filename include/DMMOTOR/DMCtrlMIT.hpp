@@ -3,7 +3,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机MIT控制
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-03-03 22:43:55
+ * @LastEditTime: 2025-03-25 19:03:34
  */
 #ifndef DM_Ctrl_MIT_HPP
 #define DM_Ctrl_MIT_HPP
@@ -52,6 +52,8 @@ public:
     using DMMotor::get_MST_ID;
     // 获取电机的CAN ID
     using DMMotor::get_CAN_ID;
+    //设置参数映射最大值
+    using DMMotor::set_param_max;
     // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
     using DMMotor::is_online;
     // 获取电机的多圈位置
@@ -78,7 +80,7 @@ public:
     using DMMotor::get_controller_temperature;
     // 获取电机的转子温度（单位：摄氏度）
     using DMMotor::get_motor_temperature;
-
+    
 #ifndef DM_DEBUG
 protected:
 #endif
@@ -88,15 +90,16 @@ protected:
 
     // 控制任务函数
     static void DMmotortask(void* _motor);
+    TaskHandle_t ctrl_task_handle = nullptr; // 控制任务句柄
 
     uint8_t Kp = 0; // 位置控制系数
     uint8_t Kd = 0; // 速度控制系数
-    uint16_t DataRateHz = 1000; // 数据交互频率
+    uint16_t DataRateHz = 1000; // 数据交互频率,单位为Hz,默认为1000
     uint16_t p_des = 0; // 位置串级控制参数
     uint16_t v_des = 0.5 * (1 << 12); // 速度串级控制参数
     uint16_t t_ff = 0.5 * (1 << 12); // 力矩串级控制参数
 
-    TaskHandle_t ctrl_task_handle = nullptr; // 控制任务句柄
+
 };
 
 // 构造函数1: 通过CAN总线初始化电机

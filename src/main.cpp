@@ -7,17 +7,18 @@
 #include <Arduino.h>
 
 #include "CONTROLLER.hpp"
-#include "DJIMotorCtrlESP.hpp"
+//#include "DJIMotorCtrlESP.hpp"
 #include "./DMMOTOR/HXC_DMCtrl.hpp"
-#include "HXC_TWAI.hpp"
+#include "./DMMOTOR/HXC_TWAI.hpp"
+#include "VOFA.hpp"
 
 HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 // M3508_P19 M3508(1);
-
+VOFA_float speed_target("speed",0);
 //达妙电机MIT控制类
 
-HXC_DMCtrl GM6220(&twai,0x0,1);
-
+//HXC_DMCtrl GM6220(&twai,0x0,1);
+HXC_DMCtrl M3519(&twai,0x10,2);
 
 //HXC_DMCtrl M3510(&twai,0x1,0);
 
@@ -81,12 +82,12 @@ void setup() {
 
   twai.setup();
   delay(100);
-  GM6220.enable();
+  M3519.enable();
   delay(100);
-  GM6220.setup(false);
-  
+  M3519.setup(false);
+  speed_target.setup();
   Serial.begin(115200);
-  GM6220.set_speed(60);
+  M3519.set_speed(1152);
   // M3519.set_pdes(32768);
   
 }
@@ -98,14 +99,9 @@ void loop() {
   // delay(20);
   //float speed=0;
   //Serial.println(M3510.speed_location_taget/65535.f);
+  M3519.set_speed(speed_target);
+  Serial.println(M3519.get_vel_rpm());
 
-  Serial.print(GM6220.get_vel_rpm());
-  Serial.print(",");
-  Serial.print(GM6220.get_location());
-  Serial.print(",");
-  Serial.print(GM6220.get_pos_deg());
-  Serial.print(",");
-  Serial.println(GM6220.get_pos_rad());
 
   delay(100);
 }
