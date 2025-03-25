@@ -4,15 +4,25 @@
  * @Author: qingmeijiupiao
  * @Date: 2024-10-17 22:00:39
  */
-#include <Arduino.h>
+
+
 
 #include "CONTROLLER.hpp"
-//#include "DJIMotorCtrlESP.hpp"
+#include "DJIMotorCtrlESP.hpp"
 #include "./DMMOTOR/HXC_DMCtrl.hpp"
-#include "./DMMOTOR/HXC_TWAI.hpp"
-#include "VOFA.hpp"
+#include "HXC_TWAI.hpp"
 
 HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
+
+
+VOFA_float motor_kp("motor_kp", 0.000f);
+VOFA_float motor_kd("motor_kd", 0.0f);
+VOFA_float motor_ki("motor_ki", 0.000f);
+
+VOFA_float motor_targetSpeed("motor_targetSpeed", 50.0f);
+VOFA_float motor_targetLocation("motor_targetLocation", 0.0f);
+
+
 // M3508_P19 M3508(1);
 VOFA_float speed_target("speed",0);
 //达妙电机MIT控制类
@@ -23,7 +33,7 @@ HXC_DMCtrl M3519(&twai,0x10,2);
 //HXC_DMCtrl M3510(&twai,0x1,0);
 
 
-// //二维向量,极坐标表示
+//二维向量,极坐标表示
 // struct dir_and_value
 // {
 //   float dir=0; //方向,单位弧度
@@ -77,31 +87,38 @@ HXC_DMCtrl M3519(&twai,0x10,2);
 //   return taget_angle;
 // }
 
-
+// #define TARGET_LOCATION 1000
 void setup() {
 
   twai.setup();
   delay(100);
   M3519.enable();
   delay(100);
-  M3519.setup(false);
-  speed_target.setup();
+  GM6220.setup(false);
+  
   Serial.begin(115200);
-  M3519.set_speed(1152);
+  GM6220.set_speed(60);
   // M3519.set_pdes(32768);
+  
+
   
 }
 void loop() {
   // temp.xy_to_polar(remote_data.ly,remote_data.lx);
-
+  // GM6220.set_location(TARGET_LOCATION);
   // M3508.set_speed(temp.value*800);
   // gm6220.set_pdes(32768+AngleConversion()*65535/25);
   // delay(20);
   //float speed=0;
   //Serial.println(M3510.speed_location_taget/65535.f);
-  M3519.set_speed(speed_target);
-  Serial.println(M3519.get_vel_rpm());
 
+  Serial.print(GM6220.get_vel_rpm());
+  Serial.print(",");
+  Serial.print(GM6220.get_location());
+  Serial.print(",");
+  Serial.print(GM6220.get_pos_deg());
+  Serial.print(",");
+  Serial.println(GM6220.get_pos_rad());
 
   delay(100);
 }

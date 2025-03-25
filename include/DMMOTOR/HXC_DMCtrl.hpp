@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-25 19:29:46
+ * @LastEditTime: 2025-03-25 19:53:02
  */
 #ifndef HXC_DMCtrlESP_HPP
 #define HXC_DMCtrlESP_HPP
@@ -60,6 +60,9 @@ class HXC_DMCtrl : protected DMMotorMIT{
     // 设置目标速度，单位：RPM，加速度控制
     virtual void set_speed(float speed, float acce = 0);
 
+    // 获取目标位置
+    int64_t get_location_target();
+
     // 获取转子目标速度
     float get_taget_speed();
 
@@ -90,9 +93,10 @@ class HXC_DMCtrl : protected DMMotorMIT{
 
     /*基类接口*/
 
+    //设置控制频率，也影响CAN接发消息的的频率
+    using DMMotorMIT::setDataRate;
     // 使能电机 对应0xFC命令
     using DMMotor::enable;
-    
     // 失能电机 对应0xFD命令
     using DMMotor::disable;
     // 保存电机位置零点
@@ -138,9 +142,13 @@ protected:
 
     int64_t location_taget = 0;        // 目标位置,回传的编码器值(16bit)作为单位 例如PMAX=12.566 那么旋转一圈为(2*PI/PMAX)*65535=32768
     int64_t speed_location_taget = 0;  // 速度目标位置,这里为了最大化精度,以回传的位置数据作为单位,0-65535映射为0-PMAX
-    pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
+    // pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
+    pid_param default_location_pid_parmater={0.047,0.092,0,50,500};  // 修改后的参数， 25.3.21
+
     PID_CONTROL location_pid_contraler;      // 位置PID控制器
-    pid_param default_speed_pid_parmater={0.001,0.002,0,1,1};    // 默认速度PID参数
+    // pid_param default_speed_pid_parmater={0.001,0.002,0,1,1};    // 默认速度PID参数
+    pid_param default_speed_pid_parmater={0.001,0.0006,0,1,1};    // 修改后的参数， 25.3.21
+
     PID_CONTROL speed_pid_contraler;         // 速度PID控制器
     
     float max_Torque = 0.8; // 最大扭矩 0-1
@@ -220,6 +228,7 @@ void HXC_DMCtrl::stop(bool need_unload){
 // 设置位置闭环控制参数
 void HXC_DMCtrl::set_location_pid(float _location_Kp, float _location_Ki, float _location_Kd, float __dead_zone, float _max_speed){
     location_pid_contraler.setPram(_location_Kp,_location_Ki,_location_Kd,__dead_zone,_max_speed);
+    // location_pid_contraler.printPID(); // 调试打印PID参数
 }
 // 设置位置闭环控制参数（传入pid_param结构体）
 void HXC_DMCtrl::set_location_pid(pid_param pid){
@@ -229,6 +238,7 @@ void HXC_DMCtrl::set_location_pid(pid_param pid){
 // 设置速度闭环控制参数
 void HXC_DMCtrl::set_speed_pid(float _speed_Kp, float _speed_Ki, float _speed_Kd, float __dead_zone, float _max_curunt){
     speed_pid_contraler.setPram(_speed_Kp,_speed_Ki,_speed_Kd,__dead_zone,_max_curunt);
+    // speed_pid_contraler.printPID(); // 调试打印PID参数
 }
 
 // 设置速度闭环控制参数（传入pid_param结构体）
@@ -239,6 +249,9 @@ void HXC_DMCtrl::set_speed_pid(pid_param pid){
 // 设置多圈目标位置
 void HXC_DMCtrl::set_location(int64_t _location){
     location_taget = _location;
+    if (location_func_handle == nullptr) {
+        xTaskCreate(location_contral_task, "location_contral_task", location_task_stack_size, this, location_task_Priority, &location_func_handle);
+    }
 }
 
 // 设置最大力矩（0-1）
@@ -272,6 +285,12 @@ void HXC_DMCtrl::set_speed(float speed, float acce){
         xTaskCreate(speed_contral_task, "speed_contral_task", speed_task_stack_size, this, speed_task_Priority, &speed_func_handle);
     }
 }
+
+// 获取目标位置
+int64_t HXC_DMCtrl::get_location_target() {
+    return location_taget;
+}
+
 
 // 获取转子目标速度
 float HXC_DMCtrl::get_taget_speed(){
@@ -324,9 +343,9 @@ void HXC_DMCtrl::speed_contral_task(void* n){
     //上次更新时间
     int last_update_speed_time=now_time_us();
     moto->speed_pid_contraler.reset();
-    //在unload过后出现扰动，再次load之后不会回到扰动前的位置
+    //在unload过后出mu现扰动，再次load之后不会回到扰动前的位置
     moto->speed_location_taget = moto->get_location();
-
+    //目标控制速度，和目标速度的区别是受加速度限制
     float taget_control_speed = moto->taget_speed;
     float last_taget_control_speed = moto->taget_speed;
     auto xLastWakeTime = xTaskGetTickCount ();
@@ -337,7 +356,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
             taget_control_speed = moto->taget_speed;
         }else{
             //如果启用了加速度控制
-            if(abs(taget_control_speed-last_taget_control_speed)>delta_time*moto->acceleration){
+            if(std::abs(taget_control_speed-last_taget_control_speed)>delta_time*moto->acceleration){
                 //根据加速度控制速度
                 taget_control_speed = last_taget_control_speed+(taget_control_speed-last_taget_control_speed)>0?delta_time*moto->acceleration:-delta_time*moto->acceleration;
             }else{
@@ -363,7 +382,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->get_location())/65535;
 
         
-        //计算控制力矩
+        //计算控制力矩 [-1,1]
         float Torque = 
         /*位置映射的力矩=*/moto->location_to_Torque_func(moto->get_location())
         +
@@ -372,7 +391,8 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         //限幅
         Torque=Torque<-1? -1:Torque>1?1:Torque;
 
-        moto->set_tff((Torque*2047)+2047);//设置力矩
+        moto->set_tff((Torque*2047)+2047);//设置力矩,[－1，1]映射到[0,4095]
+        
         //控制频率
         xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
     }
@@ -384,7 +404,8 @@ void HXC_DMCtrl::location_contral_task(void* n){
     float speed=0;
     auto xLastWakeTime = xTaskGetTickCount ();
     while (1){
-        //位置闭环控制,由位置误差决定速度,再由速度误差决定电流
+        //位置闭环控制,由位置误差决定速度,再由速度误差决定力矩
+        
         speed = moto->location_pid_contraler.control(moto->location_taget - moto->get_location());
         moto->taget_speed = speed;
         //控制频率

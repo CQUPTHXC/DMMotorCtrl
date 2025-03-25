@@ -3,13 +3,15 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC ESP32 twai封装类 继承HXC_CAN
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-16 19:46:26
+ * @LastEditTime: 2025-03-25 19:54:08
  * @Relay: HXC_CAN
  */
 #ifndef HXC_TWAI_HPP
 #define HXC_TWAI_HPP
 #include "HXC_CAN.hpp"
 #include "driver/twai.h" //can驱动，esp32sdk自带
+#include "freertos/FreeRTOS.h"
+#include <cstring>//use memcpy memcmp
 #include <cstring>
 // TWAI封装类
 class HXC_TWAI : public HXC_CAN {
