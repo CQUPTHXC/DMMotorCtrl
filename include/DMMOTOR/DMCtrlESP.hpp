@@ -2,13 +2,12 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-25 19:50:54
+ * @LastEditTime: 2025-03-25 19:52:19
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
 #include "HXC_CAN.hpp"
 #include "DMRegister.hpp"
-#include "freertos/FreeRTOS.h"
 #include <string.h>//use memcpy memcmp
 #include <esp32-hal.h>//use millis()
 #include <math.h>
@@ -313,6 +312,11 @@ uint16_t DMMotor::get_pos_raw() {
 float DMMotor::get_pos_rad(){
     return 2.f*(POS_raw-32767)*Pmax/65535.f;
 };
+
+
+#ifndef PI
+#define PI 3.1415926535897932384626433832795
+#endif
 
 // 获取电机的角度，单位度
 float DMMotor::get_pos_deg(){
