@@ -12,40 +12,71 @@
 #include "HXC_DMCtrl.hpp"
 
 namespace HXC{
-
+//达妙3510
+class DMH3510:public HXC_DMCtrl{
+    DMH3510(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
+        this->set_Pmax(12.5);
+        this->set_Vmax(280);
+        this->set_Tmax(1); 
+        set_speed_pid(pid_param(5.2,2.51,3.12,1,1));
+        set_location_pid(pid_param(3.6,3.36,2.36,60,1));
+    }
+    DMH3510(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
+    :HXC_DMCtrl(can, MST_ID, CAN_ID, speed_pid, location_pid) {
+        this->set_Pmax(12.5);
+        this->set_Vmax(280);
+        this->set_Tmax(1);
+    }
+};
+//达妙3507
+class DM3507 : public HXC_DMCtrl{
+    DM3507(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
+        this->set_Pmax(12.566);
+        this->set_Vmax(50);
+        this->set_Tmax(5);
+        set_speed_pid(pid_param(0.00055,0.0015,0,1,1));
+        set_location_pid(pid_param(6.36,0.63,3.6,50,1));
+    }; 
+    DM3507(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
+    :HXC_DMCtrl(can, MST_ID, CAN_ID, speed_pid, location_pid) {
+        this->set_Pmax(12.566);
+        this->set_Vmax(50);
+        this->set_Tmax(5);
+    }
+};
 //达妙3519
 class DM3519 : public HXC_DMCtrl{
     DM3519(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
-        this->set_Pmax();
-        this->set_Vmax();
-        this->set_Tmax();
+        this->set_Pmax(0);
+        this->set_Vmax(0);
+        this->set_Tmax(0);
         
-        set_speed_pid(pid_param(0.001,0.002,0,1,1));
-        set_location_pid(pid_param(0.1,0.1,0,2000,500));
+        set_speed_pid(pid_param(0.0006,0.0018,0,1,1));
+        set_location_pid(pid_param(0.1,0.076,0,50,1));
     };
     // 复用基类的构造函数
     DM3519(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
     :HXC_DMCtrl(can, MST_ID, CAN_ID, speed_pid, location_pid) {
-        this->set_Pmax();
-        this->set_Vmax();
-        this->set_Tmax();
+        this->set_Pmax(0);
+        this->set_Vmax(0);
+        this->set_Tmax(0);
     }
 };
 
 class DM6220 : public HXC_DMCtrl{
     DM6220(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
-        this->set_Pmax();
-        this->set_Vmax();
-        this->set_Tmax();
+        this->set_Pmax(0);
+        this->set_Vmax(0);
+        this->set_Tmax(0);
         set_speed_pid(pid_param(0.001,0.0006,0,1,1));
         set_location_pid(pid_param(0.047,0.092,0,50,500));
     };
     // 复用基类的构造函数
     DM6220(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
     :HXC_DMCtrl(can, MST_ID, CAN_ID, speed_pid, location_pid) {
-        this->set_Pmax();
-        this->set_Vmax();
-        this->set_Tmax();
+        this->set_Pmax(0);
+        this->set_Vmax(0);
+        this->set_Tmax(0);
     }
 
 };
