@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-03-25 19:52:19
+ * @LastEditTime: 2025-04-02 21:30:22
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -13,7 +13,7 @@
 #include <math.h>
 #include <FreeRTOS.h>
 
-#define DM_DEBUG 1    // 开启调试模式,将所有类成员改为public
+#define protected public    // 开启调试模式,将所有类成员改为public
 
 
 // 默认控制任务栈大小
@@ -143,9 +143,8 @@ public:
     
     HXC_CAN* can_bus;         // CAN总线对象
 
-#ifndef DM_DEBUG
 protected:
-#endif
+
 
 
     int MST_ID;               // 电机反馈数据ID
@@ -396,7 +395,6 @@ void DMMotor::update_date_callback(uint8_t* arr) {
 
     constexpr int MAX_POSITION=65535;//最大位置
     constexpr int HALF_POSITION=32768;//半最大位置
-
     // 更新电机的多圈位置
     int delta = 0;
     if ((POS + MAX_POSITION - POS_raw) % MAX_POSITION < HALF_POSITION) {  // 正转
