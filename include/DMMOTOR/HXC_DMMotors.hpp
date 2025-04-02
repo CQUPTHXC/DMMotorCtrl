@@ -81,6 +81,6 @@ class DM6220 : public HXC_DMCtrl{
         this->set_Tmax(0);
     }
 
-// };
+};
 }
 #endif
