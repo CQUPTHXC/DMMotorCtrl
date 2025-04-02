@@ -11,6 +11,7 @@
 #include "DJIMotorCtrlESP.hpp"
 #include "./DMMOTOR/HXC_DMCtrl.hpp"
 #include "HXC_TWAI.hpp"
+#include "VOFA.hpp"
 
 HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 
@@ -19,18 +20,18 @@ VOFA_float motor_kp("motor_kp", 0.000f);
 VOFA_float motor_kd("motor_kd", 0.0f);
 VOFA_float motor_ki("motor_ki", 0.000f);
 
-VOFA_float motor_targetSpeed("motor_targetSpeed", 50.0f);
-VOFA_float motor_targetLocation("motor_targetLocation", 0.0f);
+VOFA_float motor_targetSpeed("motor_targetSpeed", 120.0f);
+VOFA_float motor_targetLocation("motor_targetLocation", 60.0f);
 
 
 // M3508_P19 M3508(1);
 VOFA_float speed_target("speed",0);
+VOFA_float location_target("location",0);
 //达妙电机MIT控制类
 
-//HXC_DMCtrl GM6220(&twai,0x0,1);
-HXC_DMCtrl M3519(&twai,0x10,2);
-
-//HXC_DMCtrl M3510(&twai,0x1,0);
+HXC_DMCtrl DMH3510(&twai,0x0,0x1);
+HXC_DMCtrl DM3507(&twai,0x1,0x0);
+HXC_DMCtrl DM6220(&twai,0x2,0x0);
 
 
 //二维向量,极坐标表示
@@ -67,7 +68,7 @@ HXC_DMCtrl M3519(&twai,0x10,2);
 //  */
 // float AngleConversion(){
 //     //航向电机的实际角度
-//   float DMangle=((gm6220.get_pos()-32768)/65535.f)*25;
+//   float DMangle=((DMH3510.get_pos()-32768)/65535.f)*25;
 //   //取到-PI到PI
 //   float DMangle_pi=fmod(DMangle,PI);
 //   //角度差值
@@ -92,35 +93,43 @@ void setup() {
 
   twai.setup();
   delay(100);
-  M3519.enable();
+//DMH3510.setup(true);
+//DMH3510.enable();
+DM3507.setup(true);
+DM3507.enable();
   delay(100);
-  GM6220.setup(false);
-  
   Serial.begin(115200);
-  GM6220.set_speed(60);
-  // M3519.set_pdes(32768);
-  
-
-  
+  motor_kp.setup(); 
+  motor_kd.setup(); 
+  motor_ki.setup();
+  motor_targetSpeed.setup();
+  motor_targetLocation.setup();
 }
-void loop() {
-  // temp.xy_to_polar(remote_data.ly,remote_data.lx);
-  // GM6220.set_location(TARGET_LOCATION);
-  // M3508.set_speed(temp.value*800);
-  // gm6220.set_pdes(32768+AngleConversion()*65535/25);
-  // delay(20);
-  //float speed=0;
-  //Serial.println(M3510.speed_location_taget/65535.f);
 
-  Serial.print(GM6220.get_vel_rpm());
-  Serial.print(",");
-  Serial.print(GM6220.get_location());
-  Serial.print(",");
-  Serial.print(GM6220.get_pos_deg());
-  Serial.print(",");
-  Serial.println(GM6220.get_pos_rad());
+void loop() { 
+float target_speed = motor_targetSpeed;
+float target_location = motor_targetLocation;
+float now_location=DM3507.get_location();
+DM3507.set_location(target_location);
+Serial.printf("%f, %f\n",now_location,target_location);
+/*
+float now_speed=DM3507.get_vel_rpm();
+DM3507.set_speed((int)target_speed);
+Serial.printf("%f, %f\n",now_speed,target_speed);
 
-  delay(100);
+
+*/
+
+/*
+float now_location=DMH3510.get_location();
+DMH3510.set_location(target_location);
+Serial.printf("%f, %f\n",now_location,target_location);
+
+float now_speed=DMH3510.get_vel_rpm();
+DMH3510.set_speed((int)target_speed);
+Serial.printf("%f, %f\n",now_speed,target_speed);
+*/
+delay(10); 
 }
 
 
