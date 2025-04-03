@@ -15,10 +15,9 @@
 
 HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 
-
-VOFA_float motor_kp("motor_kp", 0.000f);
-VOFA_float motor_kd("motor_kd", 0.0f);
-VOFA_float motor_ki("motor_ki", 0.000f);
+VOFA_float motor_kp("motor_kp", 0.00102f);
+VOFA_float motor_ki("motor_ki", 0.f);
+VOFA_float motor_kd("motor_kd", 0.f);
 
 VOFA_float motor_targetSpeed("motor_targetSpeed", 120.0f);
 VOFA_float motor_targetLocation("motor_targetLocation", 60.0f);
@@ -93,41 +92,53 @@ void setup() {
 
   twai.setup();
   delay(100);
-//DMH3510.setup(true);
-//DMH3510.enable();
+DMH3510.setup(true);
+DMH3510.enable();
 DM3507.setup(true);
 DM3507.enable();
   delay(100);
   Serial.begin(115200);
-  motor_kp.setup(); 
-  motor_kd.setup(); 
-  motor_ki.setup();
-  motor_targetSpeed.setup();
-  motor_targetLocation.setup();
+  VOFA_float::setup(); 
+  DMH3510.set_speed_pid(pid_param(0.00102,0.000510,0,25,1));
+  DMH3510.set_location_pid(pid_param(0.04526,0.00008,0.0008,300,500));
+
+//  DM3507.set_speed_pid(pid_param(0.0012,0.00087,0,1,1));
+//  DM3507.set_location_pid(pid_param(0.047,0.092,0,50,500));
 }
 
 void loop() { 
+
 float target_speed = motor_targetSpeed;
 float target_location = motor_targetLocation;
+float target_kp = motor_kp;
+float target_kd = motor_kd;
+float target_ki = motor_ki;
+
+
+/*
+float now_speed=DM3507.get_vel_rpm();
+DM3507.set_speed(target_speed);
+Serial.printf("%f, %f\n",now_speed,target_speed);
+
+DM3507.set_speed_pid(target_kp,target_ki,target_kd); 
+
 float now_location=DM3507.get_location();
 DM3507.set_location(target_location);
 Serial.printf("%f, %f\n",now_location,target_location);
-/*
-float now_speed=DM3507.get_vel_rpm();
-DM3507.set_speed((int)target_speed);
-Serial.printf("%f, %f\n",now_speed,target_speed);
 
-
+DM3507.set_location_pid(target_kp,target_ki,target_kd);
 */
-
+float now_speed=DMH3510.get_vel_rpm();
+DMH3510.set_speed(target_speed);
+Serial.printf("%f, %f\n",now_speed,target_speed);
+DMH3510.set_speed_pid(target_kp,target_ki,target_kd);
 /*
+
+
 float now_location=DMH3510.get_location();
 DMH3510.set_location(target_location);
 Serial.printf("%f, %f\n",now_location,target_location);
-
-float now_speed=DMH3510.get_vel_rpm();
-DMH3510.set_speed((int)target_speed);
-Serial.printf("%f, %f\n",now_speed,target_speed);
+DMH3510.set_location_pid(target_kp,target_ki,target_kd); 
 */
 delay(10); 
 }
