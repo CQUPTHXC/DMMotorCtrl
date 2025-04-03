@@ -18,7 +18,7 @@ class DMH3510:public HXC_DMCtrl{
         this->set_Pmax(12.5);
         this->set_Vmax(280);
         this->set_Tmax(1); 
-        set_speed_pid(pid_param(0.00094,0.00041,0,1,1));
+        set_speed_pid(pid_param(0.00102,0.00051,0,1,1));
         set_location_pid(pid_param(0.00081,0.00012,0.0001,50,500));
     }
     DMH3510(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
