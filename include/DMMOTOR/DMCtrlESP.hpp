@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-02 21:30:22
+ * @LastEditTime: 2025-04-03 13:43:21
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -36,16 +36,16 @@ public:
     DMMotor(HXC_CAN* can, int MST_ID, int CAN_ID);
 
     // 使能电机 对应0xFC命令
-    esp_err_t enable();
+    hxc_err_t enable();
 
     // 失能电机 对应0xFD命令
-    esp_err_t disable();
+    hxc_err_t disable();
 
     // 保存电机位置零点
-    esp_err_t save_zero();
+    hxc_err_t save_zero();
 
     // 清除电机错误
-    esp_err_t clear_error();
+    hxc_err_t clear_error();
 
     // 获取电机的MST ID
     int get_MST_ID();
@@ -125,7 +125,7 @@ public:
 
     /**
      * @brief : 读取电机的寄存器数据
-     * @return  {esp_err_t} 成功返回ESP_OK，超时返回ESP_ERR_TIMEOUT
+     * @return  {hxc_err_t} 成功返回ESP_OK，超时返回hxc_err_tIMEOUT
      * @Author : qingmeijiupiao
      * @param {DMRegisterAddress} addr 寄存器地址
      * @param {void*} value 读取到的数据，根据addr的类型有float或uint32_t两种类型
@@ -191,7 +191,7 @@ int DMMotor::get_CAN_ID() {
 }
 
 // 使能电机
-esp_err_t DMMotor::enable() {
+hxc_err_t DMMotor::enable() {
     HXC_CAN_message_t can_message;
     can_message.identifier = CAN_ID;
     can_message.data_length_code = 8;
@@ -203,7 +203,7 @@ esp_err_t DMMotor::enable() {
 }
 
 // 失能电机
-esp_err_t DMMotor::disable() {
+hxc_err_t DMMotor::disable() {
     HXC_CAN_message_t can_message;
     can_message.identifier = CAN_ID;
     can_message.data_length_code = 8;
@@ -215,7 +215,7 @@ esp_err_t DMMotor::disable() {
 }
 
 // 保存电机位置零点
-esp_err_t DMMotor::save_zero() {
+hxc_err_t DMMotor::save_zero() {
     HXC_CAN_message_t can_message;
     can_message.identifier = CAN_ID;
     can_message.data_length_code = 8;
@@ -227,7 +227,7 @@ esp_err_t DMMotor::save_zero() {
 }
 
 // 清除电机错误
-esp_err_t DMMotor::clear_error() {
+hxc_err_t DMMotor::clear_error() {
     HXC_CAN_message_t can_message;
     can_message.identifier = CAN_ID;
     can_message.data_length_code = 8;
@@ -430,7 +430,7 @@ hxc_err_t DMMotor::read_register(DMRegisterAddress addr,void* value) {
     can_message.data[1] = CAN_ID >> 8;
     can_message.data[2] = 0x33;
     can_message.data[3] = addr;
-    esp_err_t status = can_bus->send(&can_message); // 发送读取寄存器的CAN命令
+    hxc_err_t status = can_bus->send(&can_message); // 发送读取寄存器的CAN命令
     if(status!=HXC_OK){//发送失败
         return status;
     }
@@ -467,7 +467,7 @@ hxc_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
     can_message.data[2] = 0x55;  // 根据store参数设置命令
     can_message.data[3] = addr;
     memcpy(can_message.data + 4, &value, 4);  // 将值写入数据中
-    esp_err_t status = can_bus->send(&can_message); // 发送写入寄存器的CAN命令
+    hxc_err_t status = can_bus->send(&can_message); // 发送写入寄存器的CAN命令
     if(status!=HXC_OK){//发送失败
         return status;
     }
@@ -510,7 +510,7 @@ hxc_err_t DMMotor::write_register(DMRegisterAddress addr, float value) {
     can_message.data[2] = 0x55;
     can_message.data[3] = addr;
     memcpy(can_message.data + 4, &value, 4);  // 将值写入数据中
-    esp_err_t status = can_bus->send(&can_message); // 发送写入寄存器的CAN命令
+    hxc_err_t status = can_bus->send(&can_message); // 发送写入寄存器的CAN命令
     if(status!=ESP_OK){//发送失败
         return status;
     }

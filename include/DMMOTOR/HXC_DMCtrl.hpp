@@ -2,10 +2,10 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-02 21:57:52
+ * @LastEditTime: 2025-04-03 15:31:08
  */
-#ifndef HXC_DMCtrlESP_HPP
-#define HXC_DMCtrlESP_HPP
+#ifndef HXC_DMCtrl_HPP
+#define HXC_DMCtrl_HPP
 #include "DMCtrlMIT.hpp"
 #include "PID_CONTROL.hpp" //PID控制器和now_time_us()
 

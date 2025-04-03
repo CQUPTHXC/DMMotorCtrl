@@ -67,9 +67,7 @@ public:
     // 获取电机的转子温度（单位：摄氏度）
     using DMMotor::get_motor_temperature;
 
-  #ifndef DM_DEBUG
   protected:
-  #endif
 
     // 发送位置速度模式控制数据包
     void sendSpeedPospakage();
