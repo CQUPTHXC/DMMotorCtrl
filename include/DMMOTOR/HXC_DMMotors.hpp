@@ -3,7 +3,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 调好默认PID参数的DM电机封装类，继承HXC_DMCtrl
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-03-25 20:17:43
+ * @LastEditTime: 2025-04-02 22:40:43
  */
 
 
@@ -46,20 +46,22 @@ class DM3507 : public HXC_DMCtrl{
 };
 //达妙3519
 class DM3519 : public HXC_DMCtrl{
+    public:
     DM3519(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
-        this->set_Pmax(0);
-        this->set_Vmax(0);
-        this->set_Tmax(0);
-        
-        set_speed_pid(pid_param(0.0006,0.0018,0,1,1));
-        set_location_pid(pid_param(0.1,0.076,0,50,1));
+        this->set_Pmax(12.5);
+        this->set_Vmax(200);
+        this->set_Tmax(10);
+        this->speed_reduction_ratio = 19.2;
+        set_speed_pid(pid_param(0.000028, 0.00003, 0.000012, 100, 1));
+        set_location_pid(pid_param(0.1,0.1,0,2000,500));
     };
     // 复用基类的构造函数
     DM3519(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
     :HXC_DMCtrl(can, MST_ID, CAN_ID, speed_pid, location_pid) {
-        this->set_Pmax(0);
-        this->set_Vmax(0);
-        this->set_Tmax(0);
+        this->set_Pmax(12.5);
+        this->set_Vmax(200);
+        this->set_Tmax(10);
+        this->speed_reduction_ratio = 19.2;
     }
 };
 
