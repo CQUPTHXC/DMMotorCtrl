@@ -18,8 +18,8 @@ class DMH3510:public HXC_DMCtrl{
         this->set_Pmax(12.5);
         this->set_Vmax(280);
         this->set_Tmax(1); 
-        set_speed_pid(pid_param(0.00102,0.00051,0,1,1));
-        set_location_pid(pid_param(0.00081,0.00012,0.0001,50,500));
+        set_speed_pid(pid_param(0.00102,22*1e-6,3.1*1e-6,5,1));
+        set_location_pid(pid_param(0.04362,15.66*1e-6,4.4*1e-6,60,500));
     }
     DMH3510(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
     :HXC_DMCtrl(can, MST_ID, CAN_ID, speed_pid, location_pid) {
@@ -35,7 +35,7 @@ class DM3507 : public HXC_DMCtrl{
         this->set_Vmax(50);
         this->set_Tmax(5);
         set_speed_pid(pid_param(0.001,0.0006,0,1,1));
-        set_location_pid(pid_param(0.047,0.092,0,50,500));
+        set_location_pid(pid_param(0.0906,15.66*1e-6,42*1e-6,150,500));
     }; 
     DM3507(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
     :HXC_DMCtrl(can, MST_ID, CAN_ID, speed_pid, location_pid) {
@@ -70,8 +70,8 @@ class DM6220 : public HXC_DMCtrl{
         this->set_Pmax(0);
         this->set_Vmax(0);
         this->set_Tmax(0);
-        set_speed_pid(pid_param(0.001,0.0006,0,1,1));
-        set_location_pid(pid_param(0.047,0.092,0,50,500));
+        set_speed_pid(pid_param(0.00067,0.00051,0.055*1e-6,5,1));
+        set_location_pid(pid_param(0.068,0.0142,0,35,500));
     };
     // 复用基类的构造函数
     DM6220(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param location_pid)
