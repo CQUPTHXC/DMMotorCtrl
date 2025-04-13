@@ -8,29 +8,14 @@
 
 
 #include "CONTROLLER.hpp"
-#include "DJIMotorCtrlESP.hpp"
-#include "./DMMOTOR/HXC_DMCtrl.hpp"
+#include "./DMMOTOR/HXC_DMMotors.hpp"
 #include "HXC_TWAI.hpp"
 #include "VOFA.hpp"
 
 HXC_TWAI twai(8, 18, CAN_RATE_1MBIT);
 
-VOFA_float motor_kp("motor_kp", 0.00102f);
-VOFA_float motor_ki("motor_ki", 0.f);
-VOFA_float motor_kd("motor_kd", 0.f);
+HXC::DM3519 motor1(&twai, 0x0, 0x01);
 
-VOFA_float motor_targetSpeed("motor_targetSpeed", 120.0f);
-VOFA_float motor_targetLocation("motor_targetLocation", 60.0f);
-
-
-// M3508_P19 M3508(1);
-VOFA_float speed_target("speed",0);
-VOFA_float location_target("location",0);
-//达妙电机MIT控制类
-
-HXC_DMCtrl DMH3510(&twai,0x0,0x1);
-HXC_DMCtrl DM3507(&twai,0x1,0x0);
-HXC_DMCtrl DM6220(&twai,0x2,0x0);
 
 
 //二维向量,极坐标表示
@@ -89,58 +74,18 @@ HXC_DMCtrl DM6220(&twai,0x2,0x0);
 
 // #define TARGET_LOCATION 1000
 void setup() {
-
+  Serial.begin(115200);
   twai.setup();
   delay(100);
-DMH3510.setup(true);
-DMH3510.enable();
-DM3507.setup(true);
-DM3507.enable();
-  delay(100);
-  Serial.begin(115200);
-  VOFA_float::setup(); 
-  DMH3510.set_speed_pid(pid_param(0.00102,0.000510,0,25,1));
-  DMH3510.set_location_pid(pid_param(0.04526,0.00008,0.0008,300,500));
+  motor1.setup(true);
 
-//  DM3507.set_speed_pid(pid_param(0.0012,0.00087,0,1,1));
-//  DM3507.set_location_pid(pid_param(0.047,0.092,0,50,500));
 }
 
 void loop() { 
+  motor1.set_speed(1920*0.6);
+  Serial.println(motor1.get_dynamic_send_frequency());
+  delay(100);
 
-float target_speed = motor_targetSpeed;
-float target_location = motor_targetLocation;
-float target_kp = motor_kp;
-float target_kd = motor_kd;
-float target_ki = motor_ki;
-
-
-/*
-float now_speed=DM3507.get_vel_rpm();
-DM3507.set_speed(target_speed);
-Serial.printf("%f, %f\n",now_speed,target_speed);
-
-DM3507.set_speed_pid(target_kp,target_ki,target_kd); 
-
-float now_location=DM3507.get_location();
-DM3507.set_location(target_location);
-Serial.printf("%f, %f\n",now_location,target_location);
-
-DM3507.set_location_pid(target_kp,target_ki,target_kd);
-*/
-float now_speed=DMH3510.get_vel_rpm();
-DMH3510.set_speed(target_speed);
-Serial.printf("%f, %f\n",now_speed,target_speed);
-DMH3510.set_speed_pid(target_kp,target_ki,target_kd);
-/*
-
-
-float now_location=DMH3510.get_location();
-DMH3510.set_location(target_location);
-Serial.printf("%f, %f\n",now_location,target_location);
-DMH3510.set_location_pid(target_kp,target_ki,target_kd); 
-*/
-delay(10); 
 }
 
 

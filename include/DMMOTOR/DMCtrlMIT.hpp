@@ -3,7 +3,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机MIT控制
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-04-02 20:40:07
+ * @LastEditTime: 2025-04-13 15:11:50
  */
 #ifndef DM_Ctrl_MIT_HPP
 #define DM_Ctrl_MIT_HPP
@@ -63,15 +63,15 @@ public:
     // 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
     using DMMotor::get_pos_raw;
     // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
-    using DMMotor::get_vel_raw;
+    using DMMotor::get_speed_raw;
     // 获取电机的角度,单位弧度
     using DMMotor::get_pos_rad;
     // 获取电机的角度，单位度
     using DMMotor::get_pos_deg;
     // 获取电机的速度，单位rad/s
-    using DMMotor::get_vel_rad;
+    using DMMotor::get_speed_rad;
     // 获取电机的速度，单位rpm
-    using DMMotor::get_vel_rpm;
+    using DMMotor::get_speed_rpm;
     // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
     using DMMotor::get_torque_raw;
     // 获取电机的错误代码

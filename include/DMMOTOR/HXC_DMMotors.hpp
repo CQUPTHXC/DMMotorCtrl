@@ -52,7 +52,7 @@ class DM3519 : public HXC_DMCtrl{
         this->set_Vmax(200);
         this->set_Tmax(10);
         this->speed_reduction_ratio = 19.2;
-        set_speed_pid(pid_param(0.000028, 0.00003, 0.000012, 100, 1));
+        set_speed_pid(pid_param(0.000028, 0.00003, 0.000001, 100, 1));
         set_location_pid(pid_param(0.1,0.1,0,2000,500));
     };
     // 复用基类的构造函数

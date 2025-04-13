@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-03 13:43:21
+ * @LastEditTime: 2025-04-13 13:39:14
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -93,13 +93,13 @@ public:
     float get_pos_deg();
 
     // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
-    uint16_t get_vel_raw();
+    uint16_t get_speed_raw();
 
     // 获取电机的速度，单位rad/s
-    float get_vel_rad();
+    float get_speed_rad();
 
     // 获取电机的速度，单位rpm
-    float get_vel_rpm();
+    float get_speed_rpm();
     
     // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
     uint16_t get_torque_raw();
@@ -323,17 +323,17 @@ float DMMotor::get_pos_deg(){
 };
 
 // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
-uint16_t DMMotor::get_vel_raw() {
+uint16_t DMMotor::get_speed_raw() {
     return VEL_raw;
 }
 
 // 获取电机的速度，单位rad/s
-float DMMotor::get_vel_rad(){
+float DMMotor::get_speed_rad(){
     return 2.f*(VEL_raw-2047.f)*Vmax/4095.f;
 };
 
 // 获取电机的速度，单位rpm
-float DMMotor::get_vel_rpm(){
+float DMMotor::get_speed_rpm(){
     return 2.f*(VEL_raw-2047.f)*Vmax/4095.f*60.f/(2*PI);
 };
 

@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-03 15:31:08
+ * @LastEditTime: 2025-04-13 15:21:54
  */
 #ifndef HXC_DMCtrl_HPP
 #define HXC_DMCtrl_HPP
@@ -72,14 +72,14 @@ class HXC_DMCtrl : protected DMMotorMIT{
     // 获取减速箱减速比
     float get_reduction_ratio();
 
-    // 设置速度环位置误差系数
+    // 设置速度环位置误差系数，可以理解为转子与预期选择位置每相差一圈加 speed_location_K RPM速度补偿
     void set_speed_location_K(float _K = 1000);
 
     // 获取闭环控制频率
-    int get_control_frequency();
+    int get_dynamic_send_frequency();
 
-    // 设置闭环控制频率 0~1000
-    void set_control_frequency(int _control_frequency = 1000);
+    // 设置闭环控制频率 当min!=max时，控制频率为min到max之间的自动变化频率 值范围1~1000Hz
+    void set_control_frequency(uint16_t min = 100, uint16_t max = 1000);
 
     /**
      * @description: 当电机的输出电流需要根据位置进行映射的时候，可以传入位置到电流映射函数的指针
@@ -118,15 +118,15 @@ class HXC_DMCtrl : protected DMMotorMIT{
     // 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
     using DMMotor::get_pos_raw;
     // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
-    using DMMotor::get_vel_raw;
+    using DMMotor::get_speed_raw;
     // 获取电机的角度,单位弧度
     using DMMotor::get_pos_rad;
     // 获取电机的角度，单位度
     using DMMotor::get_pos_deg;
     // 获取电机的速度，单位rad/s
-    using DMMotor::get_vel_rad;
+    using DMMotor::get_speed_rad;
     // 获取电机的速度，单位rpm
-    using DMMotor::get_vel_rpm;
+    using DMMotor::get_speed_rpm;
     // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
     using DMMotor::get_torque_raw;
     // 获取电机的错误代码
@@ -155,8 +155,11 @@ protected:
 
 
     float acceleration = 0;    // 电机加速度（单位：rad/s²）
-    int speed_location_K = 1000;   // 速度环位置误差系数
-    int control_frequency = 1000;  // 控制频率（单位：Hz）
+    int speed_location_K = 1000;   // 速度环位置误差系数 可以理解为转子与预期选择位置每相差一圈加 speed_location_K RPM速度补偿
+    int control_frequency_max = 1000;  // 控制频率最大值（单位：Hz）
+    int control_frequency_min = 100;      // 控制频率最小值（单位：Hz）
+    uint32_t send_package_num = 0; // 已经发送包的数量
+    float dynamic_send_frequency = 0; // 动态发送频率
 
     /*用于速度计算的减速比，因为DM3519的位置映射的是电机屁股，
     而回传速度却是输出轴的速度，需要乘以减速比才能得到电机屁股目标位置
@@ -212,6 +215,8 @@ void HXC_DMCtrl::setup(bool is_enable){
     };
     
     if (is_enable&&speed_func_handle==nullptr) {
+        delay(100); // 等待电机上线
+        enable(); // 使能电机
         xTaskCreate(speed_contral_task, "speed_contral_task", speed_task_stack_size, this, speed_task_Priority, &speed_func_handle);  
     }
 
@@ -316,13 +321,25 @@ void HXC_DMCtrl::set_speed_location_K(float _K){
 }
 
 // 获取闭环控制频率
-int HXC_DMCtrl::get_control_frequency(){
-    return control_frequency;
+int HXC_DMCtrl::get_dynamic_send_frequency(){
+    return dynamic_send_frequency;
 }
 
 // 设置闭环控制频率 0~1000
-void HXC_DMCtrl::set_control_frequency(int _control_frequency){
-    control_frequency = _control_frequency;
+void HXC_DMCtrl::set_control_frequency(uint16_t min, uint16_t max){
+    if(min > max) {
+        uint16_t temp = min;
+        min = max;
+        max = temp;
+    }   
+    if(min < 1) {
+        min = 1;
+    }
+    if(max > 1000) {
+        max = 1000;
+    }
+    control_frequency_max = max;
+    control_frequency_min = min;
 }
 
 // 当电机的输出电流需要根据位置进行映射的时候，可以传入位置到电流映射函数的指针
@@ -335,10 +352,32 @@ void HXC_DMCtrl::add_location_to_Torque_func(std::function<int(int64_t)> func){
 void HXC_DMCtrl::torque_ctrl_task(void* p){
     HXC_DMCtrl* motor = (HXC_DMCtrl*)p;
     auto xLastWakeTime = xTaskGetTickCount();
+    uint16_t last_send_torque = 0;
+    int delay_time = 0;//延时时间
+    int last_culc_dynamic_frequency_time = 0;//上次计算动态频率的时间
+    uint32_t last_send_num=motor->send_package_num;//上次发送的包的数量
     while (1) {
-        motor->sendMITpakage();
+        if(motor->t_ff != last_send_torque){//如果力矩发生变化，立刻发送新的力矩
+            motor->sendMITpakage();
+            last_send_torque = motor->t_ff;
+            motor->send_package_num++;
+        }else{
+            delay_time++;
+            if(delay_time > (configTICK_RATE_HZ / motor->control_frequency_min)){//如果力矩没有变化，延时一段时间再发送新的力矩
+                motor->sendMITpakage();
+                last_send_torque = motor->t_ff;
+                motor->send_package_num++;
+                delay_time = 0;
+            }
+        }
+        // 计算动态频率
+        if(xTaskGetTickCount()- last_culc_dynamic_frequency_time > 10*configTICK_RATE_HZ / motor->control_frequency_min){
+            motor->dynamic_send_frequency=float(motor->send_package_num - last_send_num)*1000.f/(xTaskGetTickCount()-last_culc_dynamic_frequency_time);
+            last_send_num = motor->send_package_num;
+            last_culc_dynamic_frequency_time = xTaskGetTickCount();
+        }
         //控制频率
-        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motor->control_frequency);
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motor->control_frequency_max);
     }
 }
 
@@ -354,6 +393,8 @@ void HXC_DMCtrl::speed_contral_task(void* n){
     float taget_control_speed = moto->taget_speed;
     float last_taget_control_speed = moto->taget_speed;
     auto xLastWakeTime = xTaskGetTickCount ();
+
+    uint16_t last_value = 0;
     while (1){
         
         float delta_time=1e-6*(now_time_us()-last_update_speed_time); 
@@ -381,7 +422,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
 
         //由速度误差和位置误差一同计算电流
         double err = 
-        /*速度环的误差=*/(taget_control_speed - moto->get_vel_rpm()*moto->speed_reduction_ratio)
+        /*速度环的误差=*/(taget_control_speed - moto->get_speed_rpm()*moto->speed_reduction_ratio)
         +
         /*速度环位置误差比例系数=*/moto->speed_location_K/*这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿*/
         * 
@@ -396,11 +437,10 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         
         //限幅
         Torque=Torque<-1? -1:Torque>1?1:Torque;
-        
-        moto->set_tff((Torque*2047)+2047);//设置力矩,[－1，1]映射到[0,4095]
-        
+        uint16_t Torque_int=(Torque*2047)+2047;//将力矩转换为0-4095的整数值
+        moto->t_ff=Torque_int;
         //控制频率
-        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency_max);
     }
 }
 // 位置控制任务的入口函数
@@ -415,7 +455,7 @@ void HXC_DMCtrl::location_contral_task(void* n){
         speed = moto->location_pid_contraler.control(moto->location_taget - moto->get_location());
         moto->taget_speed = speed;
         //控制频率
-        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency);
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / moto->control_frequency_max);
     }
 };
 #endif
