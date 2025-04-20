@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-13 13:39:14
+ * @LastEditTime: 2025-04-13 16:11:03
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -87,10 +87,10 @@ public:
     uint16_t get_pos_raw();
 
     // 获取电机的角度,单位弧度
-    float get_pos_rad();
+    float get_pos_rad(bool is_multi_circle = false);
 
     // 获取电机的角度，单位度
-    float get_pos_deg();
+    float get_pos_deg(bool is_multi_circle= false);
 
     // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
     uint16_t get_speed_raw();
@@ -169,7 +169,6 @@ protected:
     uint8_t register_buffer_addr=0;//接收到的寄存器数据地址
     uint8_t register_buffer[4]={0,0,0,0};//寄存器数据缓冲区
     constexpr static const int READ_REGISTER_TIMEOUT=100;//读取寄存器超时时间 毫秒
-    bool is_first_data=true;//是否是第一个can回传数据
 };
 
 
@@ -240,8 +239,8 @@ hxc_err_t DMMotor::clear_error() {
 
 // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
 bool DMMotor::is_online() {
-    if (millis() - last_can_message_update_time > 20 && last_can_message_update_time != 0) {
-        return false; // 20ms内未更新数据，认为电机掉线
+    if (millis() - last_can_message_update_time > 100 && last_can_message_update_time != 0) {
+        return false; // 100ms内未更新数据，认为电机掉线
     }
     return true; // 电机在线
 }
@@ -307,9 +306,19 @@ uint16_t DMMotor::get_pos_raw() {
     return POS_raw;
 }
 
-// 获取电机的角度,单位弧度
-float DMMotor::get_pos_rad(){
-    return 2.f*(POS_raw-32767)*Pmax/65535.f;
+
+/**
+ * @brief : 获取电机的角度，单位rad
+ * @return {float} 角度，单位rad 单圈范围为[0,2*PI]
+ * @param {bool} is_multi_circle 是否是多圈位置
+ */
+float DMMotor::get_pos_rad(bool is_multi_circle){
+    float angle=2.f*(POS_raw-32767)*Pmax/65535.f;
+    if(!is_multi_circle){
+        angle=std::fmod(angle,2*PI);//取模
+        if(angle<0)angle+=2*PI;//如果小于0，补齐
+    }
+    return angle;
 };
 
 
@@ -317,9 +326,19 @@ float DMMotor::get_pos_rad(){
 #define PI 3.1415926535897932384626433832795
 #endif
 
-// 获取电机的角度，单位度
-float DMMotor::get_pos_deg(){
-    return 2.f*(POS_raw-32767)*Pmax/65535.f*180.f/PI;
+
+/**
+ * @brief : 获取电机的角度，单位度
+ * @return {float} 角度，单位度 单圈范围为[0,360]
+ * @param {bool} is_multi_circle 是否是多圈位置
+ */
+float DMMotor::get_pos_deg(bool is_multi_circle){
+    float angle=2.f*(POS_raw-32767)*Pmax/65535.f*180.f/PI;
+    if(!is_multi_circle){
+        angle=std::fmod(angle,360.f);//取模
+        if(angle<0)angle+=360.f;//如果小于0，补齐
+    }
+    return angle;
 };
 
 // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
@@ -393,8 +412,8 @@ void DMMotor::update_date_callback(uint8_t* arr) {
     MOS_temp = arr[6];              // 获取MOS管温度
     T_Rotor = arr[7];               // 获取电机转子温度
 
-    constexpr int MAX_POSITION=65535;//最大位置
-    constexpr int HALF_POSITION=32768;//半最大位置
+    constexpr int MAX_POSITION=(1<<16)-1;//最大位置
+    constexpr int HALF_POSITION=MAX_POSITION/2;//半最大位置
     // 更新电机的多圈位置
     int delta = 0;
     if ((POS + MAX_POSITION - POS_raw) % MAX_POSITION < HALF_POSITION) {  // 正转
@@ -408,13 +427,6 @@ void DMMotor::update_date_callback(uint8_t* arr) {
             delta -= MAX_POSITION;
         }
     }
-    if(!is_first_data){//不将第一个数据作为多圈位置的初始值
-        // 更新电机的多圈位置
-        location += delta;
-    }else{
-        is_first_data=false;
-    }
-
     POS_raw = POS;
     last_can_message_update_time = millis();  // 更新最后更新时间
 }

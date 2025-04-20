@@ -82,8 +82,7 @@ void setup() {
 }
 
 void loop() { 
-  motor1.set_speed(1920*0.6);
-  Serial.println(motor1.get_dynamic_send_frequency());
+  Serial.println(motor1.get_pos_rad());
   delay(100);
 
 }

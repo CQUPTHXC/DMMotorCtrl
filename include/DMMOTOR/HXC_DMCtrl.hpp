@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-13 15:21:54
+ * @LastEditTime: 2025-04-13 16:20:46
  */
 #ifndef HXC_DMCtrl_HPP
 #define HXC_DMCtrl_HPP
@@ -42,8 +42,14 @@ class HXC_DMCtrl : protected DMMotorMIT{
     // 设置速度闭环控制参数（传入pid_param结构体）
     void set_speed_pid(pid_param pid);
 
-    // 设置多圈目标位置
-    void set_location(int64_t _location);
+    // 设置多圈目标位置,单位为16位编码器值，0-65535映射为-PMAX~PMAX
+    void set_taget_pos_location(int64_t _location);
+    
+    // 设置多圈目标位置,单位为弧度
+    void set_taget_pos_rad(float rad);
+
+    // 设置多圈目标位置,单位为度
+    void set_taget_pos_deg(float deg);
 
     // 设置最大力矩（0-1）
     void set_max_Torque(float _max_Torque);
@@ -109,7 +115,7 @@ class HXC_DMCtrl : protected DMMotorMIT{
     using DMMotor::get_CAN_ID;
     //设置参数映射最大值
     using DMMotor::set_param_max;
-    // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
+    // 检查电机是否在线（判断条件：100ms内未收到数据认为掉线）
     using DMMotor::is_online;
     // 获取电机的多圈位置
     using DMMotor::get_location;
@@ -140,12 +146,10 @@ protected:
 
     int64_t location_taget = 0;        // 目标位置,回传的编码器值(16bit)作为单位 例如PMAX=12.566 那么旋转一圈为(2*PI/PMAX)*65535=32768
     int64_t speed_location_taget = 0;  // 速度目标位置,这里为了最大化精度,以回传的位置数据作为单位,0-65535映射为0-PMAX
-    // pid_param default_location_pid_parmater={0.1,0.1,0,2000,500};  // 默认位置PID参数
-    pid_param default_location_pid_parmater={0.047,0.092,0,50,500};  // 修改后的参数， 25.3.21
+    pid_param default_location_pid_parmater={0.047,0.092,0,50,500};  // //默认参数
 
     PID_CONTROL location_pid_contraler;      // 位置PID控制器
-    // pid_param default_speed_pid_parmater={0.001,0.002,0,1,1};    // 默认速度PID参数
-    pid_param default_speed_pid_parmater={0.001,0.0006,0,1,1};    // 修改后的参数， 25.3.21
+    pid_param default_speed_pid_parmater={0.001,0.0006,0,1,1};//默认参数
 
     PID_CONTROL speed_pid_contraler;         // 速度PID控制器
     
@@ -257,11 +261,22 @@ void HXC_DMCtrl::set_speed_pid(pid_param pid){
 }
 
 // 设置多圈目标位置
-void HXC_DMCtrl::set_location(int64_t _location){
+void HXC_DMCtrl::set_taget_pos_location(int64_t _location){
     location_taget = _location;
     if (location_func_handle == nullptr) {
         xTaskCreate(location_contral_task, "location_contral_task", location_task_stack_size, this, location_task_Priority, &location_func_handle);
     }
+}
+
+// 设置多圈目标位置,单位为弧度
+void HXC_DMCtrl::set_taget_pos_rad(float rad){
+    int64_t location = (int64_t)((rad/Pmax)*double((1<<16)-1));
+    set_taget_pos_location(location);
+}
+
+// 设置多圈目标位置,单位为度
+void HXC_DMCtrl::set_taget_pos_deg(float deg){
+    set_taget_pos_rad(deg*PI/180.f);
 }
 
 // 设置最大力矩（0-1）
