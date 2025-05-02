@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-13 16:20:46
+ * @LastEditTime: 2025-05-02 18:59:26
  */
 #ifndef HXC_DMCtrl_HPP
 #define HXC_DMCtrl_HPP
@@ -219,7 +219,7 @@ void HXC_DMCtrl::setup(bool is_enable){
     };
     
     if (is_enable&&speed_func_handle==nullptr) {
-        delay(100); // 等待电机上线
+        delay(200); // 等待电机上线
         enable(); // 使能电机
         xTaskCreate(speed_contral_task, "speed_contral_task", speed_task_stack_size, this, speed_task_Priority, &speed_func_handle);  
     }
@@ -270,7 +270,7 @@ void HXC_DMCtrl::set_taget_pos_location(int64_t _location){
 
 // 设置多圈目标位置,单位为弧度
 void HXC_DMCtrl::set_taget_pos_rad(float rad){
-    int64_t location = (int64_t)((rad/Pmax)*double((1<<16)-1));
+    int64_t location = (int64_t)((rad/(2.f*Pmax))*double((1<<16)-1));
     set_taget_pos_location(location);
 }
 
@@ -429,8 +429,8 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         last_taget_control_speed = taget_control_speed;
 
         //由速度计算得到的目标位置
-        moto->speed_location_taget+=moto->is_online()*65535
-        *((taget_control_speed*2*PI/60.f)/(2*moto->Pmax))
+        moto->speed_location_taget+=moto->is_online()*65535.f
+        *((taget_control_speed*2.f*PI/60.f)/(2.f*moto->Pmax))
         *delta_time;//位置误差,只有电机在线才计算累计位置
         //更新上次更新时间
         last_update_speed_time=now_time_us();
@@ -441,7 +441,7 @@ void HXC_DMCtrl::speed_contral_task(void* n){
         +
         /*速度环位置误差比例系数=*/moto->speed_location_K/*这里的比例系数需要根据实际情况调整,比例系数speed_location_K可以理解为转子每相差一圈加 speed_location_K RPM速度补偿*/
         * 
-        /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->get_location())/65535;
+        /*由速度计算得到的目标位置的误差*/(moto->speed_location_taget-moto->get_location())/65535.f;
 
         
         //计算控制力矩 [-1,1]

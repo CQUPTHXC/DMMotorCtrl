@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-04-13 16:11:03
+ * @LastEditTime: 2025-05-02 18:05:27
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -237,7 +237,7 @@ hxc_err_t DMMotor::clear_error() {
     return can_bus->send(&can_message); // 发送CAN命令
 }
 
-// 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
+// 检查电机是否在线（判断条件：100ms内未收到数据认为掉线）
 bool DMMotor::is_online() {
     if (millis() - last_can_message_update_time > 100 && last_can_message_update_time != 0) {
         return false; // 100ms内未更新数据，认为电机掉线
@@ -428,7 +428,9 @@ void DMMotor::update_date_callback(uint8_t* arr) {
         }
     }
     POS_raw = POS;
+    location += delta;  // 更新多圈位置
     last_can_message_update_time = millis();  // 更新最后更新时间
+    
 }
 
 // 读取电机寄存器数据

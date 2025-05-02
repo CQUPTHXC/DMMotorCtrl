@@ -3,7 +3,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 调好默认PID参数的DM电机封装类，继承HXC_DMCtrl
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-04-02 22:40:43
+ * @LastEditTime: 2025-05-02 17:26:10
  */
 
 
@@ -14,6 +14,7 @@
 namespace HXC{
 //达妙3510
 class DMH3510:public HXC_DMCtrl{
+    public:
     DMH3510(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
         this->set_Pmax(12.5);
         this->set_Vmax(280);
@@ -30,6 +31,7 @@ class DMH3510:public HXC_DMCtrl{
 };
 //达妙3507
 class DM3507 : public HXC_DMCtrl{
+    public:
     DM3507(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
         this->set_Pmax(12.566);
         this->set_Vmax(50);
@@ -66,6 +68,7 @@ class DM3519 : public HXC_DMCtrl{
 };
 
 class DM6220 : public HXC_DMCtrl{
+    public:
     DM6220(HXC_CAN*can,int MST_ID,int CAN_ID):HXC_DMCtrl(can,MST_ID,CAN_ID){
         this->set_Pmax(0);
         this->set_Vmax(0);
