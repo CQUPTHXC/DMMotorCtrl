@@ -11,13 +11,6 @@
 #include "HXC_std_err_def.h"
 #include <map>
 #include <functional>
-#include "esp_err.h"//esp std err lib
-
-//这里重复定义了esp_err.h的定义，方便移植其他平台
-typedef int esp_err_t;
-#define ESP_OK          0       /*!< esp_err_t value indicating success (no error) */
-#define ESP_FAIL        -1      /*!< Generi esp_err_t code indicating failure */
-
 /*↓↓↓本文件的声明↓↓↓*/
 
 //CAN基类,需要用到CAN时应该使用此类作为传入类型，方便扩展不同的CAN方式

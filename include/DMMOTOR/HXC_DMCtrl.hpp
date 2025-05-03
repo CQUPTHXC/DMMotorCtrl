@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-05-02 18:59:26
+ * @LastEditTime: 2025-05-03 17:43:53
  */
 #ifndef HXC_DMCtrl_HPP
 #define HXC_DMCtrl_HPP
@@ -229,6 +229,8 @@ void HXC_DMCtrl::setup(bool is_enable){
     read_register(VMAX,&Vmax);//回传速度映射范围
     read_register(PMAX,&Pmax);//回传位置映射范围
     read_register(TMAX,&Tmax);//回传扭矩映射范围
+
+    delay(100);//防止连续读取寄存器导致数据错误
 
 }
 
