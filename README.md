@@ -1,6 +1,6 @@
 # DMMotorCtrl
 重庆邮电大学HXC战队开源
-
+![Contributors](https://contrib.rocks/image?repo=CQUPTHXC/DMMotorCtrl)
 <!-- 
 [![Compile Examples](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/workflows/Compile%20Examples/badge.svg)](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions?workflow=Compile+Examples)
 [![Check Arduino](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions/workflows/check-arduino.yml/badge.svg)](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions/workflows/check-arduino.yml)
