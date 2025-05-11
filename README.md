@@ -1,12 +1,10 @@
 # DMMotorCtrl
 重庆邮电大学HXC战队开源
+readme持续更新中
+# Contributors
 ![Contributors](https://contrib.rocks/image?repo=CQUPTHXC/DMMotorCtrl)
-<!-- 
-[![Compile Examples](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/workflows/Compile%20Examples/badge.svg)](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions?workflow=Compile+Examples)
-[![Check Arduino](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions/workflows/check-arduino.yml/badge.svg)](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions/workflows/check-arduino.yml)
-[![Check keywords.txt](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions/workflows/check-keywords-txt.yml/badge.svg)](https://github.com/qingmeijiupiao/DJIMotorCtrlESP/actions/workflows/check-keywords-txt.yml) -->
-## V1.0.0
-## 概述
+# V1.0.0
+# 概述
 
 该c++模块可用于esp32芯片的达妙电机控制。也可轻易移植到其他平台
 esp32系列只需要外挂一颗CAN收发器，即可实现电机控制。
