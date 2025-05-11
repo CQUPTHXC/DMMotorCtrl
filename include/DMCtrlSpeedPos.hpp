@@ -1,177 +1,139 @@
 /*
- * @Description: PID控制器
- * @Author: qingmeijiupiao
- * @Date: 2024-04-13 21:00:21
- * @LastEditTime: 2025-03-25 19:53:27
+ * @version: no version
  * @LastEditors: qingmeijiupiao
+ * @Description: 达妙电机速度位置控制
+ * @author: qingmeijiupiao
+ * @LastEditTime: 2025-05-11 13:53:54
  */
+#ifndef DM_CTRLSPEEDPOS_HPP
+#define DM_CTRLSPEEDPOS_HPP
+#include "DMCtrlESP.hpp"
 
-#ifndef PID_CONTROL_HPP
-#define PID_CONTROL_HPP
+// DMMotorSpeedPos类继承自DMMotor类，用位置速度模式控制电机
+class DMMotorSpeedPos : public DMMotor {
+public:
+    // 构造函数，初始化电机对象，注册CAN接收回调
+    DMMotorSpeedPos(HXC_CAN* can, int MST_ID, int CAN_ID);
+    
+    // 设置速度和位置 ：p_des，v_des 单位分别为rad和rad/s,阻尼因子必须设置为非0的正数
+    void set_SpeedPos(float _speed, float _pos);
 
-#include <cmath>
+    // 设置数据交互频率，频率范围为1-1000Hz
+    void setDataRate(uint16_t value);
 
-#include "esp32-hal.h" //使用micros()
+    // 初始化位置速度控制
+    // 参数isEnable：是否使能电机，默认为true
+    virtual void setup(bool isEnable = true);
 
+    /*基类接口*/
 
+    // 使能电机 对应0xFC命令
+    using DMMotor::enable;
+    
+    // 失能电机 对应0xFD命令
+    using DMMotor::disable;
+    // 保存电机位置零点
+    using DMMotor::save_zero;
+    // 清除电机错误
+    using DMMotor::clear_error;
+    // 获取电机的MST ID
+    using DMMotor::get_MST_ID;
+    // 获取电机的CAN ID
+    using DMMotor::get_CAN_ID;
+    // 检查电机是否在线（判断条件：20ms内未收到数据认为掉线）
+    using DMMotor::is_online;
+    // 获取电机的多圈位置
+    using DMMotor::get_location;
+    // 重置电机的多圈位置（默认为0）
+    using DMMotor::reset_location;
+    // 获取电机的原始位置数据（0-65535映射到 -Pmax~Pmax）
+    using DMMotor::get_pos_raw;
+    // 获取电机的原始速度数据（0-4095映射到 -Vmax~Vmax）
+    using DMMotor::get_speed_raw;
+    // 获取电机的角度,单位弧度
+    using DMMotor::get_pos_rad;
+    // 获取电机的角度，单位度
+    using DMMotor::get_pos_deg;
+    // 获取电机的速度，单位rad/s
+    using DMMotor::get_speed_rad;
+    // 获取电机的速度，单位rpm
+    using DMMotor::get_speed_rpm;
+    // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
+    using DMMotor::get_torque_raw;
+    // 获取电机的错误代码
+    using DMMotor::get_error;
+    // 获取电机的控制器温度（单位：摄氏度）
+    using DMMotor::get_controller_temperature;
+    // 获取电机的转子温度（单位：摄氏度）
+    using DMMotor::get_motor_temperature;
 
-// 获取当前时间,单位微秒,移植时按需修改
-static inline int64_t now_time_us() { 
-    return micros(); 
+  protected:
+  
+    // 发送位置速度模式控制数据包
+    void sendSpeedPospakage();
+
+    // 控制任务函数
+    static void DMmotortask(void* _motor);
+
+    uint16_t DataRateHz = 1000; // 数据交互频率
+    float p_des = 0; // 位置，单位rad
+    float v_des = 0; // 速度，单位rad/s
+    TaskHandle_t ctrl_task_handle = nullptr; // 控制任务句柄
+};
+DMMotorSpeedPos::DMMotorSpeedPos(HXC_CAN* can, int MST_ID, int CAN_ID) : DMMotor(can, MST_ID, CAN_ID){}; 
+
+void DMMotorSpeedPos::set_SpeedPos(float _speed, float _pos) {
+    p_des = _pos;
+    v_des = _speed;
 }
 
+// 设置数据交互频率，频率范围为1-1000Hz
+void DMMotorSpeedPos::setDataRate(uint16_t value) {
+    value = (value > 1000) ? 1000 : value;
+    value = (value < 1) ? 1 : value;
+    DataRateHz = value;
+}
 
-
-// PID参数结构体
-struct pid_param
-{
-    float Kp;         // 比例系数
-    float Ki;         // 积分系数
-    float Kd;         // 微分系数
-    float _dead_zone; // 死区
-    float _max_value; // 最大值
-    pid_param(float P = 0, float I = 0, float D = 0, float dead_zone = 100, float max_value = 10000)
-    {
-        Kp = P;
-        Ki = I;
-        Kd = D;
-        _dead_zone = dead_zone;
-        _max_value = max_value;
-    }
-};
-
-class PID_CONTROL
-{
-public:
-    PID_CONTROL() {}
-    
-    /**
-     * @description: PID控制器构造函数
-     * @return {*}
-     * @Author: qingmeijiupiao
-     * @Date: 2024-05-04 22:30:59
-     * @param {float} P 比例系数
-     * @param {float} I 积分系数
-     * @param {float} D 微分系数
-     * @param {float} dead_zone 死区
-     * @param {float} max_value 输出限幅
-     */
-    PID_CONTROL(float P, float I, float D, float dead_zone = 0, float max_value = 0)
-    {
-        Kp = P;
-        Ki = I;
-        Kd = D;
-        _dead_zone = dead_zone;
-        _max_value = max_value;
-        integral = 0.0;
-        prevError = 0.0;
-        last_contrl_time = 0;
-    }
-    PID_CONTROL(pid_param par)
-    {
-        Kp = par.Kp;
-        Ki = par.Ki;
-        Kd = par.Kd;
-        _dead_zone = par._dead_zone;
-        _max_value = par._max_value;
-        integral = 0.0;
-        prevError = 0.0;
-        last_contrl_time = 0;
-    }
-    float control(float error)
-    {
-        if (std::abs(error) < _dead_zone)
-        {
-            error = 0;
+// 发送MIT电机控制数据包
+void DMMotorSpeedPos::sendSpeedPospakage() {
+    HXC_CAN_message_t can_message; // 定义CAN消息对象
+    can_message.identifier = 0x100+this->get_CAN_ID();  // 速度位置模式控制帧为0x100+CAN_ID
+    can_message.data_length_code = 8; // 数据长度为8字节
+    can_message.self = false;
+    memcpy(can_message.data, &p_des, 4); // 填充数据
+    memcpy(can_message.data + 4, &v_des, 4);// 填充数据
+    can_bus->send(&can_message); // 发送CAN数据包
+}
+// 参数isEnable：是否使能电机，默认为true
+void DMMotorSpeedPos::setup(bool isEnable) {
+    if (isEnable) {
+        //电机上线检测
+        while(!is_online()) {
+            enable(); // 使能电机
+            vTaskDelay(10/ portTICK_PERIOD_MS); // 延时等待电机上线
         }
-        float time_p = now_time_us() - last_contrl_time;
-        if (last_contrl_time == 0 || time_p < 0)
-        {
-            time_p = 1;
-        }
-        // 计算时间,确保ki，kd在不同控制频率的一致性
-        time_p = 0.000001*time_p;
-        // 计算比例项
-        float proportional = Kp * error;
-
-
-        
-        integral += (time_p * Ki * error);
-        // 积分限幅
-        if(std::abs(integral) > _max_value){
-            integral= integral>0?_max_value:-_max_value;
-        }
-        // 计算积分项
-        //当Kp大于限幅时，积分项不增加
-        if(std::abs(proportional) > _max_value){
-            integral=0;
-        }
-        float derivative = 0;
-        // 计算微分项
-        if (time_p != 0)
-            derivative = Kd * (error - prevError) / time_p;
-        prevError = error;
-        // 计算总的控制输出
-        float output = proportional + integral + derivative;
-        last_contrl_time = now_time_us();
-        if (std::abs(output) > _max_value)
-        {
-            return output > 0 ? _max_value : -1 * _max_value;
-        }
-        return output;
-    }
-    // 重置控制器状态
-    void reset()
-    {
-        integral = 0.0;
-        prevError = 0.0;
-    }
-    // 修改控制器参数
-    void setPram(float P = 0, float I = 0, float D = 0, float dead_zone = 0, float max_value = 0)
-    {
-        if (P != 0)
-        {
-            Kp = P;
-        }
-        if (I != 0)
-        {
-            Ki = I;
-        }
-        if (D != 0)
-        {
-            Kd = D;
-        }
-        if (dead_zone != 0)
-        {
-            _dead_zone = dead_zone;
-        }
-        if (max_value != 0)
-        {
-            _max_value = max_value;
-        }
-        reset();
-    }
-    void setPram(pid_param pid)
-    {
-        setPram(pid.Kp, pid.Ki, pid.Kd, pid._dead_zone, pid._max_value);
-    }
-    pid_param getParam()
-    {
-        return pid_param(Kp, Ki, Kd, _dead_zone, _max_value);
     }
 
-    private:
-    float Kp;         // 比例系数
-    float Ki;         // 积分系数
-    float Kd;         // 微分系数
-    float _max_value; // 输出限幅
-    float _dead_zone; // 死区
-    float setpoint;   // 设定值
-    float integral;   // 积分项
-    float prevError;  // 上一次误差
-    float last_contrl_time = 0; // 上一次控制时间
-};
+    if (ctrl_task_handle == nullptr) {
+        // 创建一个控制任务，以周期性发送控制指令
+        xTaskCreate(DMmotortask,DM_default_ctrl_task_name, DM_default_ctrl_task_stack_size, this, DM_default_ctrl_task_priority, &ctrl_task_handle);
+    }
+}
 
+// 控制任务函数
+void DMMotorSpeedPos::DMmotortask(void* _motor) {
+
+    DMMotorSpeedPos* motor =reinterpret_cast<DMMotorSpeedPos*>(_motor);
+
+    // 获取当前时间
+    auto xLastWakeTime = xTaskGetTickCount ();
+    while (1) {
+        // 每次循环发送数据包
+        motor->sendSpeedPospakage(); 
+        // 根据数据频率设置延时
+        xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motor->DataRateHz);
+    }
+}
 #endif
 /*
                                               .=%@#=.                                               

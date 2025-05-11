@@ -1,22 +1,22 @@
 /*
  * @version: no version
  * @LastEditors: qingmeijiupiao
- * @Description: 达妙电机速度位置控制
+ * @Description: 达妙电机速度控制
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-03-03 22:44:19
+ * @LastEditTime: 2025-05-11 13:53:05
  */
-#ifndef DM_CTRLSPEEDPOS_HPP
-#define DM_CTRLSPEEDPOS_HPP
+#ifndef DM_CTRLSPEED_HPP
+#define DM_CTRLSPEED_HPP
 #include "DMCtrlESP.hpp"
 
-// DMMotorSpeedPos类继承自DMMotor类，用位置速度模式控制电机
-class DMMotorSpeedPos : public DMMotor {
+// DMMotorSpeed类继承自DMMotor类，用速度模式控制电机
+class DMMotorSpeed : public DMMotor {
 public:
     // 构造函数，初始化电机对象，注册CAN接收回调
-    DMMotorSpeedPos(HXC_CAN* can, int MST_ID, int CAN_ID);
+    DMMotorSpeed(HXC_CAN* can, int MST_ID, int CAN_ID);
     
-    // 设置速度和位置 ：p_des，v_des 单位分别为rad和rad/s,阻尼因子必须设置为非0的正数
-    void set_SpeedPos(float _speed, float _pos);
+    // 设置速度和位置 _speed 单位为rad/s,
+    void set_Speed(float _speed);
 
     // 设置数据交互频率，频率范围为1-1000Hz
     void setDataRate(uint16_t value);
@@ -68,7 +68,7 @@ public:
     using DMMotor::get_motor_temperature;
 
   protected:
-  
+
     // 发送位置速度模式控制数据包
     void sendSpeedPospakage();
 
@@ -76,42 +76,40 @@ public:
     static void DMmotortask(void* _motor);
 
     uint16_t DataRateHz = 1000; // 数据交互频率
-    float p_des = 0; // 位置，单位rad
     float v_des = 0; // 速度，单位rad/s
     TaskHandle_t ctrl_task_handle = nullptr; // 控制任务句柄
 };
-DMMotorSpeedPos::DMMotorSpeedPos(HXC_CAN* can, int MST_ID, int CAN_ID) : DMMotor(can, MST_ID, CAN_ID){}; 
+// 构造函数，初始化电机对象，注册CAN接收回调
+DMMotorSpeed::DMMotorSpeed(HXC_CAN* can, int MST_ID, int CAN_ID) : DMMotor(can, MST_ID, CAN_ID){}; 
 
-void DMMotorSpeedPos::set_SpeedPos(float _speed, float _pos) {
-    p_des = _pos;
+void DMMotorSpeed::set_Speed(float _speed) {
     v_des = _speed;
 }
 
 // 设置数据交互频率，频率范围为1-1000Hz
-void DMMotorSpeedPos::setDataRate(uint16_t value) {
+void DMMotorSpeed::setDataRate(uint16_t value) {
     value = (value > 1000) ? 1000 : value;
     value = (value < 1) ? 1 : value;
     DataRateHz = value;
 }
 
 // 发送MIT电机控制数据包
-void DMMotorSpeedPos::sendSpeedPospakage() {
+void DMMotorSpeed::sendSpeedPospakage() {
     HXC_CAN_message_t can_message; // 定义CAN消息对象
-    can_message.identifier = 0x100+this->get_CAN_ID();  // 速度位置模式控制帧为0x100+CAN_ID
-    can_message.data_length_code = 8; // 数据长度为8字节
+    can_message.identifier = 0x200+this->get_CAN_ID();  // 速度模式控制帧为0x200+CAN_ID
+    can_message.data_length_code = 4; // 数据长度为8字节
     can_message.self = false;
-    memcpy(can_message.data, &p_des, 4); // 填充数据
-    memcpy(can_message.data + 4, &v_des, 4);// 填充数据
+    memcpy(can_message.data, &v_des, 4); // 填充数据
     can_bus->send(&can_message); // 发送CAN数据包
 }
 // 参数isEnable：是否使能电机，默认为true
-void DMMotorSpeedPos::setup(bool isEnable) {
+void DMMotorSpeed::setup(bool isEnable) {
     if (isEnable) {
-        // 此处可以进行电机上线检测代码，例如：
-        // while(!is_online()) {
-        //     enable(); // 使能电机
-        //     delay(10); // 延时等待电机上线
-        // }
+        //电机上线检测
+        while(!is_online()) {
+            enable(); // 使能电机
+            vTaskDelay(10/ portTICK_PERIOD_MS);
+        }
     }
 
     if (ctrl_task_handle == nullptr) {
@@ -121,16 +119,12 @@ void DMMotorSpeedPos::setup(bool isEnable) {
 }
 
 // 控制任务函数
-void DMMotorSpeedPos::DMmotortask(void* _motor) {
-
-    DMMotorSpeedPos* motor =reinterpret_cast<DMMotorSpeedPos*>(_motor);
-
+void DMMotorSpeed::DMmotortask(void* _motor) {
+    DMMotorSpeed* motor = reinterpret_cast<DMMotorSpeed*>(_motor);
     // 获取当前时间
     auto xLastWakeTime = xTaskGetTickCount ();
     while (1) {
-        // 每次循环发送数据包
-        motor->sendSpeedPospakage(); 
-        // 根据数据频率设置延时
+        motor->sendSpeedPospakage(); // 每次循环发送数据包
         xTaskDelayUntil(&xLastWakeTime, configTICK_RATE_HZ / motor->DataRateHz);
     }
 }

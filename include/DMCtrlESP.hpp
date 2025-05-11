@@ -1,19 +1,18 @@
 /*
  * @LastEditors: qingmeijiupiao
- * @Description: 达妙电机控制
+ * @Description: 达妙电机控制基类
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-05-03 13:47:41
+ * @LastEditTime: 2025-05-11 14:00:36
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
 #include "HXC_CAN.hpp"
 #include "DMRegister.hpp"
 #include <string.h>//use memcpy memcmp
-#include <esp32-hal.h>//use millis()
 #include <math.h>
 #include <FreeRTOS.h>
 
-#define protected public    // 开启调试模式,将所有类成员改为public
+//#define protected public    // 开启调试模式,将所有类成员改为public
 
 
 // 默认控制任务栈大小
@@ -239,7 +238,7 @@ hxc_err_t DMMotor::clear_error() {
 
 // 检查电机是否在线（判断条件：100ms内未收到数据认为掉线）
 bool DMMotor::is_online() {
-    if (millis() - last_can_message_update_time > 100 && last_can_message_update_time != 0) {
+    if (now_time_ms() - last_can_message_update_time > 100 && last_can_message_update_time != 0) {
         return false; // 100ms内未更新数据，认为电机掉线
     }
     return true; // 电机在线
@@ -429,7 +428,7 @@ void DMMotor::update_date_callback(uint8_t* arr) {
     }
     POS_raw = POS;
     location += delta;  // 更新多圈位置
-    last_can_message_update_time = millis();  // 更新最后更新时间
+    last_can_message_update_time = now_time_ms();  // 更新最后更新时间
     
 }
 
@@ -449,8 +448,8 @@ hxc_err_t DMMotor::read_register(DMRegisterAddress addr,void* value) {
         return status;
     }
     can_register_flag=true;//等待寄存器数据
-    int start_time=millis();
-    while(millis()-start_time<READ_REGISTER_TIMEOUT){//等待超时
+    int start_time=now_time_ms();
+    while(now_time_ms()-start_time<READ_REGISTER_TIMEOUT){//等待超时
         if(register_buffer_addr==addr){
             //复制数据
             memcpy(value,register_buffer,4);
@@ -486,8 +485,8 @@ hxc_err_t DMMotor::write_register(DMRegisterAddress addr, uint32_t value) {
         return status;
     }
     can_register_flag=true;//等待寄存器数据
-    int start_time=millis();
-    while(millis()-start_time<READ_REGISTER_TIMEOUT){//等待超时
+    int start_time=now_time_ms();
+    while(now_time_ms()-start_time<READ_REGISTER_TIMEOUT){//等待超时
         if(register_buffer_addr==addr){
             //比较数据
             int temp = memcmp(register_buffer,&value,4);
@@ -529,8 +528,8 @@ hxc_err_t DMMotor::write_register(DMRegisterAddress addr, float value) {
         return status;
     }
     can_register_flag=true;//等待寄存器数据
-    int start_time=millis();
-    while(millis()-start_time<READ_REGISTER_TIMEOUT){//等待超时
+    int start_time=now_time_ms();
+    while(now_time_ms()-start_time<READ_REGISTER_TIMEOUT){//等待超时
         if(register_buffer_addr==addr){
             //比较数据
             int temp = memcmp(register_buffer,&value,4);

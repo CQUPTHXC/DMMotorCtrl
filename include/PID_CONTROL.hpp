@@ -1,201 +1,165 @@
 /*
+ * @Description: PID控制器
+ * @Author: qingmeijiupiao
+ * @Date: 2024-04-13 21:00:21
+ * @LastEditTime: 2025-05-11 13:56:00
  * @LastEditors: qingmeijiupiao
- * @Description: 重庆邮电大学HXC战队ESP-NOW二次封装库,指定了发包格式
- * @Author: qingmeijiupiao
- * @LastEditTime: 2024-12-03 20:40:49
  */
 
-#ifndef esp_now_hpp
-#define esp_now_hpp
-#include <Arduino.h>
-#include <WiFi.h>
-#include <esp_wifi.h>
-#include <esp_now.h>
-#include <map>
+#ifndef PID_CONTROL_HPP
+#define PID_CONTROL_HPP
 
-
-
-
-//发送数据包失败最大重试次数
-#define MAX_RETRY 5
-
-//数据包密钥
-static uint16_t secret_key=0xFEFE;
-
-//广播地址
-uint8_t broadcastMacAddress[] ={0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
-
-//记录是否收到数据包，用于判断是否连接
-bool is_conect = false;
-
-
-
-
-
-
-/*↓↓↓↓声明↓↓↓↓*/
-
-//数据包
-struct HXC_ESPNOW_data_pakage;
-
-//回调函数
-using callback_func =std::function<void(HXC_ESPNOW_data_pakage)>;
-
-/**
- * @description: ESP-NOW初始化
- * @return {*}
- * @Author: qingmeijiupiao
- * @param {uint8_t*} receive_MAC 接收数据的设备MAC
- * @param {int} wifi_channel 使用的wifi信道
- */
-void esp_now_setup(uint8_t* receive_MAC=broadcastMacAddress,int wifi_channel=0);
-
-//发送数据
-esp_err_t esp_now_send_package(String name,uint8_t* data,int datalen,uint8_t* receive_MAC=broadcastMacAddress);
-
-//添加回调函数
-void add_esp_now_callback(String package_name,callback_func func);
-
-//移除回调函数
-void remove_esp_now_callback(String package_name);
-
-//修改密钥
-void change_secret_key(uint16_t _secret_key);
-
-
-
-
-
-
-
-
-
-
-/*↓↓↓↓定义↓↓↓↓*/
-
-//数据包格式
-struct HXC_ESPNOW_data_pakage {
-  uint16_t header_code=secret_key;//数据包头,作为密钥使用
-  uint8_t name_len;
-  uint8_t data_len;
-  String package_name;
-  uint8_t data[256];
-  //添加名字
-  void add_name(String _name){
-    package_name=_name;
-    name_len=package_name.length();
-  }
-  //添加数据
-  void add_data(uint8_t* _data,int _datalen){
-    data_len=_datalen;
-    for(int i=0;i<_datalen;i++){
-      data[i]=_data[i];
+#include <cmath>
+#include "HXC_std_err_def.h"
+// PID参数结构体
+struct pid_param
+{
+    float Kp;         // 比例系数
+    float Ki;         // 积分系数
+    float Kd;         // 微分系数
+    float _dead_zone; // 死区
+    float _max_value; // 最大值
+    pid_param(float P = 0, float I = 0, float D = 0, float dead_zone = 100, float max_value = 10000)
+    {
+        Kp = P;
+        Ki = I;
+        Kd = D;
+        _dead_zone = dead_zone;
+        _max_value = max_value;
     }
-  }
-  //获取数据
-  void get_data(uint8_t* _data){
-    _data[0]=header_code/256;
-    _data[1]=header_code%256;
-    _data[2]=package_name.length();
-    _data[3]=data_len;
-    memcpy(_data+4,package_name.c_str(),package_name.length());
-    memcpy(_data+4+package_name.length(),data,data_len);
-  }
-
-  //解码数组到结构体对象
-  void decode(uint8_t* _data,int _datalen){
-    header_code=_data[0]+_data[1]*256;
-    name_len=_data[2];
-    data_len=_data[3];
-    package_name="";
-    for(int i=0;i<name_len;i++){
-      package_name+=char(_data[4+i]);
-    }
-    for(int i=0;i<data_len;i++){
-      data[i]=_data[4+name_len+i];
-    }
-  }
-  //获取数据包长度
-  int get_len(){
-    return 4+name_len+data_len;
-  }
-
 };
 
+class PID_CONTROL
+{
+public:
+    PID_CONTROL() {}
+    
+    /**
+     * @description: PID控制器构造函数
+     * @return {*}
+     * @Author: qingmeijiupiao
+     * @Date: 2024-05-04 22:30:59
+     * @param {float} P 比例系数
+     * @param {float} I 积分系数
+     * @param {float} D 微分系数
+     * @param {float} dead_zone 死区
+     * @param {float} max_value 输出限幅
+     */
+    PID_CONTROL(float P, float I, float D, float dead_zone = 0, float max_value = 0)
+    {
+        Kp = P;
+        Ki = I;
+        Kd = D;
+        _dead_zone = dead_zone;
+        _max_value = max_value;
+        integral = 0.0;
+        prevError = 0.0;
+        last_contrl_time = 0;
+    }
+    PID_CONTROL(pid_param par)
+    {
+        Kp = par.Kp;
+        Ki = par.Ki;
+        Kd = par.Kd;
+        _dead_zone = par._dead_zone;
+        _max_value = par._max_value;
+        integral = 0.0;
+        prevError = 0.0;
+        last_contrl_time = 0;
+    }
+    float control(float error)
+    {
+        if (std::abs(error) < _dead_zone)
+        {
+            error = 0;
+        }
+        float time_p = now_time_us() - last_contrl_time;
+        if (last_contrl_time == 0 || time_p < 0)
+        {
+            time_p = 1;
+        }
+        // 计算时间,确保ki，kd在不同控制频率的一致性
+        time_p = 0.000001*time_p;
+        // 计算比例项
+        float proportional = Kp * error;
 
-static std::map<String, callback_func> callback_map;//回调函数map
 
-void add_esp_now_callback(String package_name,callback_func func){
-  callback_map[package_name]=func;
-}
-void remove_esp_now_callback(String package_name){
-  callback_map.erase(package_name);
+        
+        integral += (time_p * Ki * error);
+        // 积分限幅
+        if(std::abs(integral) > _max_value){
+            integral= integral>0?_max_value:-_max_value;
+        }
+        // 计算积分项
+        //当Kp大于限幅时，积分项不增加
+        if(std::abs(proportional) > _max_value){
+            integral=0;
+        }
+        float derivative = 0;
+        // 计算微分项
+        if (time_p != 0)
+            derivative = Kd * (error - prevError) / time_p;
+        prevError = error;
+        // 计算总的控制输出
+        float output = proportional + integral + derivative;
+        last_contrl_time = now_time_us();
+        if (std::abs(output) > _max_value)
+        {
+            return output > 0 ? _max_value : -1 * _max_value;
+        }
+        return output;
+    }
+    // 重置控制器状态
+    void reset()
+    {
+        integral = 0.0;
+        prevError = 0.0;
+    }
+    // 修改控制器参数
+    void setPram(float P = 0, float I = 0, float D = 0, float dead_zone = 0, float max_value = 0)
+    {
+        if (P != 0)
+        {
+            Kp = P;
+        }
+        if (I != 0)
+        {
+            Ki = I;
+        }
+        if (D != 0)
+        {
+            Kd = D;
+        }
+        if (dead_zone != 0)
+        {
+            _dead_zone = dead_zone;
+        }
+        if (max_value != 0)
+        {
+            _max_value = max_value;
+        }
+        reset();
+    }
+    void setPram(pid_param pid)
+    {
+        setPram(pid.Kp, pid.Ki, pid.Kd, pid._dead_zone, pid._max_value);
+    }
+    pid_param getParam()
+    {
+        return pid_param(Kp, Ki, Kd, _dead_zone, _max_value);
+    }
+
+    private:
+    float Kp;         // 比例系数
+    float Ki;         // 积分系数
+    float Kd;         // 微分系数
+    float _max_value; // 输出限幅
+    float _dead_zone; // 死区
+    float setpoint;   // 设定值
+    float integral;   // 积分项
+    float prevError;  // 上一次误差
+    float last_contrl_time = 0; // 上一次控制时间
 };
-
-static HXC_ESPNOW_data_pakage re_data;//数据包缓存对象
-
-//接收数据时的回调函数，收到数据时自动运行
-void OnESPNOWDataRecv(const uint8_t *mac, const uint8_t *data, int len) {
-  //检查是否是数据包
-  if(len<2) return;
-  if(*(uint16_t*)data!=secret_key) return;
-  re_data.decode((uint8_t*)data,len);
-    //检查是否是需要运行回调函数的数据包
-  if(callback_map.count( re_data.package_name )!=0){
-    callback_map[re_data.package_name](re_data);
-  }
-  is_conect=true;
-}
-
-
-static esp_now_peer_info_t peerInfo;
-static bool is_setup=false;
-
-//ESP-NOW初始化
-void esp_now_setup(uint8_t* receive_MAC,int wifi_channel){
-  
-  if(is_setup) return;
-  is_setup=true;
-
-  WiFi.mode(WIFI_STA);
-  if (esp_now_init() != ESP_OK) {
-      Serial.println("ESP-NOW initialization failed");
-      return;
-  }
-  if(wifi_channel!=0){
-    peerInfo.channel = wifi_channel;
-  }
-  peerInfo.ifidx = WIFI_IF_STA;
-  memcpy(peerInfo.peer_addr, receive_MAC, 6);
-  esp_now_add_peer(&peerInfo);
-
-  if(receive_MAC!=broadcastMacAddress){
-    memcpy(peerInfo.peer_addr, broadcastMacAddress, 6);
-    esp_now_add_peer(&peerInfo);
-  }
-  esp_now_register_recv_cb(OnESPNOWDataRecv);
-} 
-
-
-//通过espnow发送数据包
-esp_err_t esp_now_send_package(String name,uint8_t* data,int datalen,uint8_t* receive_MAC){
-  HXC_ESPNOW_data_pakage send_data;
-  send_data.add_name(name);
-  send_data.add_data(data,datalen);
-  uint8_t send_data_array[send_data.get_len()];
-  send_data.get_data(send_data_array);
-  //发送
-  for(int i=0;i<MAX_RETRY;i++){
-    auto err = esp_now_send(receive_MAC,send_data_array,send_data.get_len());
-    if (err == ESP_OK)  return ESP_OK;
-    delay(20);
-  }
-  return ESP_FAIL;
-}
-
-void change_secret_key(uint16_t _secret_key){
-  secret_key=_secret_key;
-}
 
 #endif
 /*

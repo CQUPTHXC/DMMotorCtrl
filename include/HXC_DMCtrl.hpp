@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-05-03 17:43:53
+ * @LastEditTime: 2025-05-11 13:54:23
  */
 #ifndef HXC_DMCtrl_HPP
 #define HXC_DMCtrl_HPP
@@ -219,7 +219,7 @@ void HXC_DMCtrl::setup(bool is_enable){
     };
     
     if (is_enable&&speed_func_handle==nullptr) {
-        delay(200); // 等待电机上线
+        vTaskDelay(200/ portTICK_PERIOD_MS);
         enable(); // 使能电机
         xTaskCreate(speed_contral_task, "speed_contral_task", speed_task_stack_size, this, speed_task_Priority, &speed_func_handle);  
     }
@@ -230,7 +230,7 @@ void HXC_DMCtrl::setup(bool is_enable){
     read_register(PMAX,&Pmax);//回传位置映射范围
     read_register(TMAX,&Tmax);//回传扭矩映射范围
 
-    delay(100);//防止连续读取寄存器导致数据错误
+    vTaskDelay(100/ portTICK_PERIOD_MS);//防止连续读取寄存器导致数据错误
 
 }
 
@@ -465,7 +465,7 @@ void HXC_DMCtrl::location_contral_task(void* n){
     HXC_DMCtrl* moto = (HXC_DMCtrl*) n;
     moto->location_pid_contraler.reset();//重置位置闭环控制器
     float speed=0;
-    auto xLastWakeTime = xTaskGetTickCount ();
+    auto xLastWakeTime = xTaskGetTickCount();
     while (1){
         //位置闭环控制,由位置误差决定速度,再由速度误差决定力矩
         
