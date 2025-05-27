@@ -41,7 +41,6 @@ public:
 
     // 使能电机 对应0xFC命令
     using DMMotor::enable;
-    
     // 失能电机 对应0xFD命令
     using DMMotor::disable;
     // 保存电机位置零点

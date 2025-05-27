@@ -103,9 +103,6 @@ public:
     // 获取电机的原始扭矩数据（0-4095映射到 -Tmax~Tmax）
     uint16_t get_torque_raw();
 
-    // 获取目标位置
- 
-
     // 获取电机的错误代码
     uint8_t get_error();
 
@@ -426,7 +423,6 @@ void DMMotor::update_date_callback(uint8_t* arr) {
     POS_raw = POS;
     location += delta;  // 更新多圈位置
     last_can_message_update_time = now_time_ms();  // 更新最后更新时间
-    
 }
 
 // 读取电机寄存器数据

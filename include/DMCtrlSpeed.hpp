@@ -3,7 +3,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机速度控制
  * @author: qingmeijiupiao
- * @LastEditTime: 2025-05-11 13:53:05
+ * @LastEditTime: 2025-05-18 14:05:55
  */
 #ifndef DM_CTRLSPEED_HPP
 #define DM_CTRLSPEED_HPP
@@ -29,7 +29,6 @@ public:
 
     // 使能电机 对应0xFC命令
     using DMMotor::enable;
-    
     // 失能电机 对应0xFD命令
     using DMMotor::disable;
     // 保存电机位置零点
