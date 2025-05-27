@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制基类
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-05-27 11:19:53
+ * @LastEditTime: 2025-05-27 16:04:20
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -309,7 +309,7 @@ uint16_t DMMotor::get_pos_raw() {
  * @param {bool} is_multi_circle 是否是多圈位置
  */
 float DMMotor::get_pos_rad(bool is_multi_circle){
-    float angle=2.f*(POS_raw-32767)*Pmax/65535.f;
+    float angle=2.f*(get_location()-32767)*Pmax/65535.f;
     if(!is_multi_circle){
         angle=std::fmod(angle,2*PI);//取模
         if(angle<0)angle+=2*PI;//如果小于0，补齐
