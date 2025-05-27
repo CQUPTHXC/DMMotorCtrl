@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: HXC达妙电机控制，基于MIT控制
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-05-11 13:54:23
+ * @LastEditTime: 2025-05-27 19:15:09
  */
 #ifndef HXC_DMCtrl_HPP
 #define HXC_DMCtrl_HPP
@@ -415,10 +415,8 @@ void HXC_DMCtrl::speed_contral_task(void* n){
     while (1){
         
         float delta_time=1e-6*(now_time_us()-last_update_speed_time); 
-        
-        if(moto->acceleration==0){
-            taget_control_speed = moto->taget_speed;
-        }else{
+        taget_control_speed = moto->taget_speed;
+        if(moto->acceleration!=0){
             //如果启用了加速度控制
             if(std::abs(taget_control_speed-last_taget_control_speed)>delta_time*moto->acceleration){
                 //根据加速度控制速度
