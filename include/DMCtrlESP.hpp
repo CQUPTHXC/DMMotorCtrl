@@ -2,7 +2,7 @@
  * @LastEditors: qingmeijiupiao
  * @Description: 达妙电机控制基类
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-05-18 14:05:08
+ * @LastEditTime: 2025-05-27 11:19:53
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
@@ -411,22 +411,18 @@ void DMMotor::update_date_callback(uint8_t* arr) {
     constexpr int MAX_POSITION=(1<<16)-1;//最大位置
     constexpr int HALF_POSITION=MAX_POSITION/2;//半最大位置
     // 更新电机的多圈位置
-    int delta = 0;
-    if ((POS + MAX_POSITION - POS_raw) % MAX_POSITION < HALF_POSITION) {  // 正转
-        delta = POS - POS_raw;
-        if (delta < 0) {
-            delta += MAX_POSITION;
-        }
-    } else {  // 反转
-        delta = POS - POS_raw;
-        if (delta > 0) {
-            delta -= MAX_POSITION;
-        }
+    int delta = POS - POS_raw;
+    
+    // 处理位置回绕情况
+    if (delta > HALF_POSITION) {
+        delta -= MAX_POSITION + 1;  // 正向回绕
+    } else if (delta < -HALF_POSITION) {
+        delta += MAX_POSITION + 1;  // 负向回绕
     }
+    
     POS_raw = POS;
     location += delta;  // 更新多圈位置
     last_can_message_update_time = now_time_ms();  // 更新最后更新时间
-    
 }
 
 // 读取电机寄存器数据
