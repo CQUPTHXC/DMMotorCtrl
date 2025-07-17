@@ -5,7 +5,7 @@
   "keywords": "ESP32,DM,damiao,3519,3507,3510,6220,Robomaster,Robocon",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CQUPTHXC/DJIMotorCtrlESP"
+    "url": "https://github.com/CQUPTHXC/DMMotorCtrl"
   },
   "authors": [
     {
@@ -15,7 +15,7 @@
     }
   ],
   "license": "GPL-3.0-or-later",
-  "homepage": "https://github.com/CQUPTHXC/DJIMotorCtrlESP",
+  "homepage": "https://github.com/CQUPTHXC/DMMotorCtrl",
   "dependencies": {
     "qingmeijiupiao/HXC_CAN": "^1.0.1"
   },
