@@ -3,7 +3,7 @@
 readme持续更新中
 # Contributors
 ![Contributors](https://contrib.rocks/image?repo=CQUPTHXC/DMMotorCtrl)
-# V1.0.0
+# V1.0.1
 # 概述
 
 该c++模块可用于esp32芯片的达妙电机控制。也可轻易移植到其他平台
