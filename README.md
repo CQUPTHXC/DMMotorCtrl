@@ -434,7 +434,7 @@ HXC_DMCtrl(HXC_CAN* can, int MST_ID, int CAN_ID, pid_param speed_pid, pid_param 
 
 **新增方法说明**
 
-#### `setup`
+`setup`
 
 ```cpp
 void setup(bool is_enable = true);
@@ -448,7 +448,7 @@ void setup(bool is_enable = true);
 
 ---
 
-#### `stop`
+`stop`
 
 ```cpp
 void stop(bool need_unload = true);
@@ -462,7 +462,7 @@ void stop(bool need_unload = true);
 
 ---
 
-#### `set_location_pid`
+`set_location_pid`
 
 ```cpp
 void set_location_pid(float _location_Kp, float _location_Ki, float _location_Kd, float __dead_zone, float _max_speed);
@@ -480,7 +480,7 @@ void set_location_pid(float _location_Kp, float _location_Ki, float _location_Kd
 
 ---
 
-#### `set_speed_pid`
+`set_speed_pid`
 
 ```cpp
 void set_speed_pid(float _speed_Kp, float _speed_Ki, float _speed_Kd, float __dead_zone, float _max_curunt);
@@ -498,7 +498,7 @@ void set_speed_pid(float _speed_Kp, float _speed_Ki, float _speed_Kd, float __de
 
 ---
 
-#### `set_target_pos_location`
+`set_target_pos_location`
 
 ```cpp
 void set_target_pos_location(int64_t _location);
@@ -512,7 +512,7 @@ void set_target_pos_location(int64_t _location);
 
 ---
 
-#### `set_target_pos_rad`
+`set_target_pos_rad`
 
 ```cpp
 void set_target_pos_rad(float rad);
@@ -526,7 +526,7 @@ void set_target_pos_rad(float rad);
 
 ---
 
-#### `set_target_pos_deg`
+`set_target_pos_deg`
 
 ```cpp
 void set_target_pos_deg(float deg);
@@ -540,7 +540,7 @@ void set_target_pos_deg(float deg);
 
 ---
 
-#### `set_max_Torque`
+`set_max_Torque`
 
 ```cpp
 void set_max_Torque(float _max_Torque);
@@ -554,7 +554,7 @@ void set_max_Torque(float _max_Torque);
 
 ---
 
-#### `unload`
+`unload`
 
 ```cpp
 void unload();
@@ -565,7 +565,7 @@ void unload();
 
 ---
 
-#### `load`
+`load`
 
 ```cpp
 void load();
@@ -576,7 +576,7 @@ void load();
 
 ---
 
-#### `get_is_load`
+`get_is_load`
 
 ```cpp
 bool get_is_load();
@@ -590,7 +590,7 @@ bool get_is_load();
 
 ---
 
-#### `set_speed`
+`set_speed`
 
 ```cpp
 void set_speed(float speed, float acce = 0);
@@ -605,7 +605,7 @@ void set_speed(float speed, float acce = 0);
 
 ---
 
-#### `get_location_target`
+`get_location_target`
 
 ```cpp
 int64_t get_location_target();
@@ -618,7 +618,7 @@ int64_t get_location_target();
 
 ---
 
-#### `get_target_speed`
+`get_target_speed`
 
 ```cpp
 float get_target_speed();
@@ -631,7 +631,7 @@ float get_target_speed();
 
 ---
 
-#### `set_acceleration`
+`set_acceleration`
 
 ```cpp
 void set_acceleration(float acce = 0);
@@ -645,7 +645,7 @@ void set_acceleration(float acce = 0);
 
 ---
 
-#### `get_reduction_ratio`
+`get_reduction_ratio`
 
 ```cpp
 float get_reduction_ratio();
@@ -658,7 +658,7 @@ float get_reduction_ratio();
 
 ---
 
-#### `set_speed_location_K`
+`set_speed_location_K`
 
 ```cpp
 void set_speed_location_K(float _K = 1000);
@@ -672,7 +672,7 @@ void set_speed_location_K(float _K = 1000);
 
 ---
 
-#### `get_dynamic_send_frequency`
+`get_dynamic_send_frequency`
 
 ```cpp
 int get_dynamic_send_frequency();
@@ -685,7 +685,7 @@ int get_dynamic_send_frequency();
 
 ---
 
-#### `set_control_frequency`
+`set_control_frequency`
 
 ```cpp
 void set_control_frequency(uint16_t min = 100, uint16_t max = 1000);
@@ -700,7 +700,7 @@ void set_control_frequency(uint16_t min = 100, uint16_t max = 1000);
 
 ---
 
-#### `add_location_to_Torque_func`
+`add_location_to_Torque_func`
 
 ```cpp
 void add_location_to_Torque_func(std::function<int(int64_t)> func);
