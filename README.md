@@ -13,7 +13,8 @@ esp32系列只需要外挂一颗CAN收发器，即可实现电机控制。
 
 ## 类图
 ### 全局类图
-![达妙电机库类图-类图 drawio](https://github.com/user-attachments/assets/3d313aa6-f2fe-4880-a2fc-1a077bce5193)
+![达妙电机库类图-类图](https://github.com/user-attachments/assets/22f23d19-e116-4250-8f18-71f02bf52dc2)
+
 ### 简化层级类图
 ![达妙电机库类图-层级图 drawio](https://github.com/user-attachments/assets/4baa4e1a-9c21-4fa1-b428-23044a3cf777)
 
