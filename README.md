@@ -25,13 +25,13 @@ esp32系列只需要外挂一颗CAN收发器，即可实现电机控制。
 
 ---
 
-### API 说明 (API Reference)
+## API 说明 (API Reference)
 
-#### `DMMotor` 类 (电机基类)
+### `DMMotor` 类 (电机基类)
 
 `DMMotor` 类是达妙电机控制的基础类，提供了电机控制的基本操作，如启动、停止、获取位置、速度等。
 
-##### 继承接口
+**继承接口**
 
 `DMMotorMIT` 和其他继承类继承自 `DMMotor`，并基于此类提供更多的功能。
 
@@ -713,3 +713,124 @@ void add_location_to_Torque_func(std::function<int(int64_t)> func);
 * **功能**：设置一个位置到电流的映射函数。适用于需要根据位置来映射电流的场景，例如摇臂控制等。
 
 ---
+
+### 具体型号封装类
+在 `HXC_DMMotors.hpp`封装好了部分电机，内置了默认参数方便调用
+
+## 使用实例
+
+### 示例 1：初始化电机并控制其启动与停止
+
+```cpp
+#include "HXC_DMCtrl.hpp"
+
+// 创建CAN通信接口
+HXC_CAN can(1, 1);  // 参数为CAN接口的编号和通信波特率
+
+// 创建电机对象
+HXC_DMCtrl motor(&can, 1, 1);  // 参数为CAN接口、MST_ID和CAN_ID
+
+// 初始化电机并启用
+motor.setup();
+
+// 启动电机
+motor.load();
+
+// 停止电机
+motor.stop();
+```
+
+### 示例 2：设置PID控制参数并执行位置控制
+
+```cpp
+#include "HXC_DMCtrl.hpp"
+
+// 创建CAN通信接口
+HXC_CAN can(1, 1);
+
+// 创建电机对象
+HXC_DMCtrl motor(&can, 1, 1);
+
+// 设置PID控制参数
+motor.set_location_pid(50.0, 0.1, 5.0, 0.01, 10.0);  // 设置位置PID的Kp, Ki, Kd，死区值和最大速度
+
+// 设置目标位置
+motor.set_target_pos_deg(90.0);  // 设置目标位置为90度
+
+// 启动电机并执行控制
+motor.load();
+```
+
+### 示例 3：设置速度控制并获取电机状态
+
+```cpp
+#include "HXC_DMCtrl.hpp"
+
+// 创建CAN通信接口
+HXC_CAN can(1, 1);
+
+// 创建电机对象
+HXC_DMCtrl motor(&can, 1, 1);
+
+// 设置PID控制参数
+motor.set_speed_pid(30.0, 0.05, 1.0, 0.01, 2.0);  // 设置速度PID的Kp, Ki, Kd，死区值和最大电流
+
+// 设置目标速度
+motor.set_speed(120.0);  // 设置目标速度为120 RPM
+
+// 获取当前目标位置和速度
+int64_t target_location = motor.get_location_target();
+float target_speed = motor.get_target_speed();
+
+// 输出目标位置和速度
+Serial.println("目标位置: " + String(target_location));
+Serial.println("目标速度: " + String(target_speed));
+```
+
+### 示例 4：设置加速度并动态控制电机
+
+```cpp
+#include "HXC_DMCtrl.hpp"
+
+// 创建CAN通信接口
+HXC_CAN can(1, 1);
+
+// 创建电机对象
+HXC_DMCtrl motor(&can, 1, 1);
+
+// 设置加速度
+motor.set_acceleration(10.0);  // 设置加速度为10 RPM/s
+
+// 启动电机并设置目标速度
+motor.set_speed(200.0, 10.0);  // 设置目标速度为200 RPM，并设置加速度为10 RPM/s
+
+// 获取电机的减速比
+float reduction_ratio = motor.get_reduction_ratio();
+
+// 输出减速比
+Serial.println("减速比: " + String(reduction_ratio));
+```
+
+### 示例 5：根据位置控制电流的映射函数
+
+```cpp
+#include "HXC_DMCtrl.hpp"
+
+// 创建CAN通信接口
+HXC_CAN can(1, 1);
+
+// 创建电机对象
+HXC_DMCtrl motor(&can, 1, 1);
+
+// 设置位置到扭矩的映射函数
+motor.add_location_to_Torque_func([](int64_t location) {
+    // 根据位置映射到扭矩（示例：位置越大，扭矩越大）
+    return static_cast<int>(location / 100);
+});
+
+// 设置目标位置并启动电机
+motor.set_target_pos_deg(45.0);
+motor.load();
+```
+
+这些实例展示了如何使用 `HXC_DMCtrl` 类进行电机的初始化、启动、停止、PID控制、速度控制、加速度控制以及自定义的扭矩控制。
