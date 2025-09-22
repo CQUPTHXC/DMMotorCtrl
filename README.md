@@ -19,12 +19,6 @@ esp32系列只需要外挂一颗CAN收发器，即可实现电机控制。
 ![达妙电机库类图-层级图 drawio](https://github.com/user-attachments/assets/4baa4e1a-9c21-4fa1-b428-23044a3cf777)
 
 
-## 控制算法
-本电机库在使用如下图的控制方式
-![达妙电机库类图-控制框图 drawio](https://github.com/user-attachments/assets/7da03e5d-c6b5-4a23-85b4-fa25aca78073)
-
----
-
 ## API 说明 (API Reference)
 
 ### `DMMotor` 类 (电机基类)
@@ -403,8 +397,13 @@ Got it! Here's the API description for the `HXC_DMCtrl` class in the same format
 ---
 
 ### `HXC_DMCtrl` 类（继承自 `DMMotorMIT`）
-
 `HXC_DMCtrl` 类扩展了基于 MIT 控制的电机控制功能，并提供了 PID 控制以实现更精确的电机控制，支持速度、位置控制以及力矩控制。
+
+#### 控制算法
+本电机类在使用如下图的控制方式
+![达妙电机库类图-控制框图 drawio](https://github.com/user-attachments/assets/7da03e5d-c6b5-4a23-85b4-fa25aca78073)
+
+---
 
 **构造函数**
 
