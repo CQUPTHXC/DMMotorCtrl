@@ -1,12 +1,12 @@
 /*
- * @LastEditors: qingmeijiupiao
+ * @LastEditors: QMJ
  * @Description: 达妙电机控制基类
  * @Author: qingmeijiupiao
- * @LastEditTime: 2025-05-27 16:04:20
+ * @LastEditTime: 2025-09-24 16:32:53
  */
 #ifndef DMCtrlESP_HPP
 #define DMCtrlESP_HPP
-#include "HXC_CAN.hpp"
+#include "HXC_CAN.h"
 #include "DMRegister.hpp"
 #include <string.h>//use memcpy memcmp
 #include <math.h>
